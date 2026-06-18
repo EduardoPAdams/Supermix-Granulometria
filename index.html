@@ -142,10 +142,29 @@ tr.e{background:#fff}tr.o{background:#fafafa}tr.tot{background:#f5f5f5;font-weig
   .hist-hdr{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   @page{margin:10mm}
 }
+
+/* ── UMIDADE ──────────────────────────── */
+.hum-result{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:7px;background:#e1f5ee;border:1px solid #5dcaa5;color:#0a5c44;font-size:14px;font-weight:600;min-width:90px;justify-content:center}
+.hum-result.empty{background:#f5f5f5;border-color:#ddd;color:#aaa;font-weight:400}
+.hum-badge-ok{display:inline-flex;align-items:center;gap:5px;background:#e1f5ee;border:1px solid #5dcaa5;border-radius:5px;padding:3px 10px;font-size:12px;color:#0a5c44;font-weight:500}
+.hum-badge-err{display:inline-flex;align-items:center;gap:5px;background:#fff3e0;border:1px solid #ffb74d;border-radius:5px;padding:3px 10px;font-size:12px;color:#e65100;font-weight:500}
+
+/* ── BOTÃO IMPRIMIR NO HIST ─────────── */
+.btn-print-hist{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.5);color:#fff;border-radius:5px;padding:3px 9px;cursor:pointer;font-size:11px;font-family:inherit}
+.btn-print-hist:hover{background:rgba(255,255,255,.35)}
+
+/* ── PRINT SINGLE RECORD ─────────────── */
+#print-single{display:none}
+
+@media print{
+  body.printing-single .wrap{display:none!important}
+  body.printing-single #print-single{display:block!important}
+}
 </style>
 </head>
 <body>
 <div id="root"></div>
+
 <script>window.TRUCK_IMG="data:image/png;base64,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";</script>
 <script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
@@ -154,6 +173,7 @@ tr.e{background:#fff}tr.o{background:#fafafa}tr.tot{background:#f5f5f5;font-weig
 const {useState,useEffect,useCallback,useRef,useMemo,memo}=React;
 const TRUCK_IMG=window.TRUCK_IMG;
 
+/* ── MATERIAIS ── */
 const MATS=[
   {id:'areia_fina', label:'AREIA CAVA FINA',    short:'A.C.Fina', sieves:['6.3','4.8','2.4','1.2','0.6','0.3','0.15'],mfMin:1.496,mfMax:1.792,pulvMi:500},
   {id:'areia_media',label:'AREIA NATURAL MEDIA', short:'A.N.Méd.', sieves:['6.3','4.8','2.4','1.2','0.6','0.3','0.15'],mfMin:2.574,mfMax:2.845,pulvMi:500},
@@ -163,28 +183,62 @@ const MATS=[
   {id:'granito_1',  label:'GRANITO 1',           short:'Gran. 1',  sieves:['32','25','19','12.5','9.5','6.3','4.8'],    mfMin:6.77, mfMax:7.15, pulvMi:1000},
   {id:'basalto_0',  label:'BASALTO 0',           short:'Basa. 0',  sieves:['19','12.5','9.5','6.3','4.8','2.4'],        mfMin:5.94, mfMax:6.56, pulvMi:1000},
 ];
+const MAT_TABS=[...MATS,{id:'pulverulento',short:'Pulv.',label:'Pulverulento',sieves:[]}];
 
-// Ordem da grade do relatório (igual à folha impressa)
-// Linha 1: areia_fina, diabasio_0, granito_0, basalto_0  + pulverulento (span 2)
-// Linha 2: areia_media, diabasio_1, granito_1, vazio
 const ROW1=['areia_fina','diabasio_0','granito_0','basalto_0'];
 const ROW2=['areia_media','diabasio_1','granito_1'];
-
 const MF_SIEVES=[76,38,19,9.5,4.8,2.4,1.2,0.6,0.3,0.15];
 
+/* ── TABELAS DE UMIDADE ── */
+const HUMIDITY_MEDIA={
+  391:0.1,392:0.4,393:0.7,394:1.0,395:1.4,396:1.7,397:2.0,398:2.4,399:2.7,400:3.1,
+  401:3.4,402:3.7,403:4.1,404:4.4,405:4.8,406:5.2,407:5.5,408:5.9,409:6.2,410:6.6,
+  411:7.0,412:7.3,413:7.7,414:8.1,415:8.5,416:8.9,417:9.2,418:9.6,419:10.0,420:10.4,
+  421:10.8,422:11.2,423:11.6,424:12.0,425:12.4,426:12.8,427:13.2
+};
+const HUMIDITY_FINA={
+  390:0.0,391:0.3,392:0.6,393:0.9,394:1.3,395:1.6,396:1.9,397:2.3,398:2.6,399:3.0,
+  400:3.3,401:3.6,402:4.0,403:4.3,404:4.7,405:5.0,406:5.4,407:5.8,408:6.1,409:6.5,
+  410:6.9,411:7.2,412:7.6,413:8.0,414:8.4,415:8.7,416:9.1,417:9.5,418:9.9,419:10.3,
+  420:10.7,421:11.1,422:11.5,423:11.9,424:12.3,425:12.7,426:13.1
+};
+
+function getHumidity(matId,leitura){
+  const t=matId==='areia_media'?HUMIDITY_MEDIA:HUMIDITY_FINA;
+  const n=parseInt(String(leitura).trim());
+  if(isNaN(n))return null;
+  return t.hasOwnProperty(n)?t[n]:null;
+}
+
+/* ── UTILS ── */
 function toDay(){return new Date().toISOString().split('T')[0]}
 function fmtD(s){if(!s)return'';const[y,m,d]=s.split('-');return`${d}/${m}/${y}`}
 function pf(v){const n=parseFloat(String(v??'').replace(',','.'));return(isNaN(n)||n<0)?0:n}
 
 function emptyMat(m){
   const masses={fundo:''};
-  m.sieves.forEach(s=>{masses[s]=''});
+  (m.sieves||[]).forEach(s=>{masses[s]=''});
   return{nf:'',placa:'',masses,pulvMf:''};
 }
 function emptyDay(){
-  const o={resp:'',filial:''};
+  const o={resp:'',filial:'',umidade:[]};
   MATS.forEach(m=>{o[m.id]=emptyMat(m)});
   return o;
+}
+
+// Migra formato antigo {areia_fina:'402',areia_media:'405'} para array
+function migrateUmidade(u){
+  if(!u)return[];
+  if(Array.isArray(u))return u;
+  const r=[];
+  if(u.areia_media)r.push({id:Date.now(),matId:'areia_media',leitura:u.areia_media,hora:''});
+  if(u.areia_fina)r.push({id:Date.now()+1,matId:'areia_fina',leitura:u.areia_fina,hora:''});
+  return r;
+}
+
+function nowHHMM(){
+  const n=new Date();
+  return`${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`;
 }
 
 function calcMat(data,sieves){
@@ -204,8 +258,8 @@ function calcMat(data,sieves){
   const smallest=testedAsc[0],largest=testedAsc[testedAsc.length-1];
   let mfSum=0;
   for(const std of MF_SIEVES){
-    if(std>largest) mfSum+=0;
-    else if(std<=smallest) mfSum+=acumMap[smallest]||0;
+    if(std>largest)mfSum+=0;
+    else if(std<=smallest)mfSum+=acumMap[smallest]||0;
     else{const next=testedAsc.find(s=>s>=std);mfSum+=next!==undefined?(acumMap[next]||0):0;}
   }
   return{rows,tot,mf:parseFloat((mfSum/100).toFixed(3))};
@@ -217,8 +271,8 @@ function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}ca
 function lsDel(k){try{localStorage.removeItem(k)}catch{}}
 function lsKeys(p){try{return Object.keys(localStorage).filter(k=>k.startsWith(p)).map(k=>k.slice(p.length))}catch{return[]}}
 
-/* ── SieveTable entrada — local state, Enter navega ── */
-const SieveTable=memo(function SieveTable({mc,initMasses,onUpdate,firstPulvRef}){
+/* ── SieveTable ── */
+const SieveTable=memo(function SieveTable({mc,initMasses,onUpdate}){
   const keys=useMemo(()=>[...mc.sieves,'fundo'],[mc.id]);
   const [vals,setVals]=useState(()=>{const v={};keys.forEach(k=>{v[k]=String(initMasses?.[k]??'')});return v;});
   const refs=useRef({});
@@ -230,7 +284,6 @@ const SieveTable=memo(function SieveTable({mc,initMasses,onUpdate,firstPulvRef})
       e.preventDefault();
       const nk=keys[idx+1];
       if(nk){refs.current[nk]?.focus();refs.current[nk]?.select();}
-      else{firstPulvRef?.current?.focus();firstPulvRef?.current?.select();}
     }
   };
   const ok=calc.tot>0&&calc.mf>=mc.mfMin&&calc.mf<=mc.mfMax;
@@ -276,7 +329,7 @@ const SieveTable=memo(function SieveTable({mc,initMasses,onUpdate,firstPulvRef})
   );
 });
 
-/* ── Logo app ── */
+/* ── Logo ── */
 function Logo(){
   return(
     <div className="logo-box">
@@ -286,7 +339,159 @@ function Logo(){
   );
 }
 
-/* ── Card de material no relatório (estilo folha impressa) ── */
+/* ── PulvTab (aba de pulverulento na entrada) ── */
+function PulvTab({dayData,setField}){
+  return(
+    <div className="card alt">
+      <div className="sec-ttl">Pulverulento</div>
+      <div className="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th className="l">Material</th>
+            <th className="r">MI (g)</th>
+            <th className="r">MF (g)</th>
+            <th className="r">Resultado (%)</th>
+          </tr></thead>
+          <tbody>
+            {MATS.map((m,i)=>{
+              const md2=dayData[m.id]||emptyMat(m);
+              const res=pulvRes(m.pulvMi,md2.pulvMf);
+              return(
+                <tr key={m.id} className={i%2===0?'e':'o'}>
+                  <td className="l" style={{fontSize:12}}>{m.label}</td>
+                  <td className="r">{m.pulvMi}</td>
+                  <td className="r" style={{padding:'3px 4px',minWidth:90}}>
+                    <input type="text" inputMode="decimal"
+                      className="inp inp-r inp-sm" value={md2.pulvMf||''}
+                      onChange={e=>{const v=e.target.value.replace(/[^0-9.,]/g,'').replace(',','.');setField(`${m.id}.pulvMf`,v);}}
+                      onFocus={e=>e.target.select()} placeholder="0" style={{width:'100%'}}/>
+                  </td>
+                  <td className="r">{res!==null?res.toFixed(2)+'%':'—'}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+/* ── UmidadeView (aba de umidade) ── */
+const UM_MATS=[
+  {id:'areia_media',label:'Areia Natural MÉDIA',short:'A.N. Média'},
+  {id:'areia_fina', label:'Areia Cava Fina',    short:'A.C. Fina'},
+];
+
+function UmidadeView({entries,onAdd,onRemove,saved,onSave,date}){
+  const [matId,setMatId]=useState('areia_media');
+  const [leitura,setLeitura]=useState('');
+  const [hora,setHora]=useState(nowHHMM);
+  const umidade=getHumidity(matId,leitura);
+  const fora=leitura!==''&&umidade===null;
+  const sorted=[...entries].sort((a,b)=>a.hora.localeCompare(b.hora));
+
+  const handleAdd=()=>{
+    if(!leitura||fora)return;
+    onAdd({id:Date.now(),matId,leitura,hora});
+    setLeitura('');
+    setHora(nowHHMM());
+  };
+  const handleKey=(e)=>{if(e.key==='Enter')handleAdd();};
+
+  return(
+    <div className="pad">
+      {/* Formulário nova leitura */}
+      <div className="card">
+        <div className="sec-ttl">Nova leitura</div>
+        <div className="fgrid" style={{marginBottom:10}}>
+          <div>
+            <div className="flbl">Material</div>
+            <select className="inp" value={matId} onChange={e=>setMatId(e.target.value)}
+              style={{cursor:'pointer'}}>
+              {UM_MATS.map(m=><option key={m.id} value={m.id}>{m.label}</option>)}
+            </select>
+          </div>
+          <div>
+            <div className="flbl">Hora</div>
+            <input type="time" className="inp" value={hora} onChange={e=>setHora(e.target.value)}/>
+          </div>
+        </div>
+        <div style={{display:'flex',gap:10,alignItems:'flex-end'}}>
+          <div style={{flex:1}}>
+            <div className="flbl">Leitura</div>
+            <input type="text" inputMode="numeric" className="inp inp-r"
+              value={leitura}
+              onChange={e=>setLeitura(e.target.value.replace(/[^0-9]/g,''))}
+              onFocus={e=>e.target.select()}
+              onKeyDown={handleKey}
+              placeholder="000"/>
+          </div>
+          <div style={{flex:1}}>
+            <div className="flbl">Umidade</div>
+            <div className="inp" style={{background:'#f5f5f5',color:umidade!==null?'#0a5c44':fora?'#e65100':'#aaa',fontWeight:umidade!==null?600:400}}>
+              {leitura===''?'—':fora?'⚠ Fora do range':umidade.toFixed(1)+'%'}
+            </div>
+          </div>
+          <button className="btn-save"
+            onClick={handleAdd}
+            style={{padding:'7px 18px',fontSize:13,whiteSpace:'nowrap',opacity:(!leitura||fora)?0.5:1}}>
+            + Adicionar
+          </button>
+        </div>
+      </div>
+
+      {/* Tabela de leituras do dia */}
+      {sorted.length>0&&(
+        <div className="card">
+          <div className="sec-ttl">Leituras do dia ({sorted.length})</div>
+          <div className="tbl-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th className="l">Hora</th>
+                  <th className="l">Material</th>
+                  <th className="r">Leitura</th>
+                  <th className="r">Umidade (%)</th>
+                  <th style={{width:32}}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {sorted.map((e,i)=>{
+                  const mat=UM_MATS.find(m=>m.id===e.matId);
+                  const u=getHumidity(e.matId,e.leitura);
+                  return(
+                    <tr key={e.id} className={i%2===0?'e':'o'}>
+                      <td className="l" style={{fontWeight:500}}>{e.hora||'—'}</td>
+                      <td className="l">{mat?.short||e.matId}</td>
+                      <td className="r">{e.leitura}</td>
+                      <td className="r" style={{fontWeight:600,color:u!==null?'#0a5c44':'#c1272d'}}>
+                        {u!==null?u.toFixed(1)+'%':'⚠'}
+                      </td>
+                      <td style={{textAlign:'center',padding:'2px 4px'}}>
+                        <button onClick={()=>onRemove(e.id)}
+                          style={{background:'none',border:'none',cursor:'pointer',color:'#c1272d',fontSize:17,lineHeight:1,padding:'0 4px',fontFamily:'inherit'}}>
+                          ×
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      <div className="save-bar">
+        {saved&&<span className="saved">✓ Salvo — {fmtD(date)}</span>}
+        <button className="btn-save" onClick={onSave}>Salvar dados do dia</button>
+      </div>
+    </div>
+  );
+}
+
+/* ── Card de material no relatório ── */
 function MatPrintCard({mc,md}){
   const c=calcMat(md||emptyMat(mc),mc.sieves);
   const ok=c.tot>0&&c.mf>=mc.mfMin&&c.mf<=mc.mfMax;
@@ -327,6 +532,8 @@ function MatPrintCard({mc,md}){
 
 /* ── Tabela Pulverulento no relatório ── */
 function PulvPrintCard({data}){
+  const activePulv=MATS.filter(m=>pf((data[m.id]||{}).pulvMf)>0);
+  if(activePulv.length===0)return null;
   return(
     <div className="pulv-card">
       <div className="pulv-card-hdr">PULVERULENTO</div>
@@ -335,7 +542,7 @@ function PulvPrintCard({data}){
           <tr><th className="l">MATERIAL</th><th className="l">TIPO</th><th className="r">VALOR</th></tr>
         </thead>
         <tbody>
-          {MATS.map((m,i)=>{
+          {activePulv.map((m,i)=>{
             const md=data[m.id]||emptyMat(m);
             const res=pulvRes(m.pulvMi,md.pulvMf);
             const sep=i>0?'mat-sep':'';
@@ -347,7 +554,7 @@ function PulvPrintCard({data}){
               </tr>,
               <tr key={`${m.id}-mf`}>
                 <td className="tipo">MF (g):</td>
-                <td className="val">{pf(md.pulvMf)>0?pf(md.pulvMf).toFixed(0):''}</td>
+                <td className="val">{pf(md.pulvMf).toFixed(0)}</td>
               </tr>,
               <tr key={`${m.id}-res`}>
                 <td className="tipo">RESULT. (%):</td>
@@ -361,55 +568,92 @@ function PulvPrintCard({data}){
   );
 }
 
-/* ── Relatório completo (estilo folha impressa) ── */
-function DayReport({data,date,showPrint}){
+/* ── DayReport (relatório completo) ── */
+function DayReport({data,date}){
+  // Umidade: suporta formato antigo (objeto) e novo (array)
+  const umEntries=migrateUmidade(data.umidade);
+  const sortedUm=[...umEntries].sort((a,b)=>a.hora.localeCompare(b.hora));
+  const hasUmidade=sortedUm.length>0;
+
+  // Apenas materiais com dados (verdes)
+  const activeMats=MATS.filter(m=>calcMat(data[m.id]||emptyMat(m),m.sieves).tot>0);
+  const hasPulv=MATS.some(m=>pf((data[m.id]||{}).pulvMf)>0);
+
+  // Grid: até 4 colunas de materiais + coluna de pulverulento se houver
+  const numCols=Math.min(4,Math.max(1,activeMats.length));
+  const gridCols=hasPulv?`1fr 148px`:`1fr`;
+
   return(
-    <div>
-      {showPrint&&(
-        <div className="report-toolbar no-print">
-          <button className="btn-print" onClick={()=>window.print()}>⎙ Imprimir / PDF</button>
-        </div>
-      )}
-      <div className="rp-wrap">
-        <div className="rp-page">
-          {/* Cabeçalho */}
-          <div className="rp-hdr">
-            <div>
-              <div className="rp-logo-row">
-                <div className="rp-logo-txt">SUPERMIX</div>
-                <div className="rp-logo-diamond"/>
-              </div>
-              <div className="rp-logo-tag" style={{fontSize:7,color:'#c1272d',marginTop:1}}>facilitando a construção civil</div>
+    <div className="rp-wrap">
+      <div className="rp-page">
+        {/* Cabeçalho */}
+        <div className="rp-hdr">
+          <div>
+            <div className="rp-logo-row">
+              <div className="rp-logo-txt">SUPERMIX</div>
+              <div className="rp-logo-diamond"/>
             </div>
-            <div className="rp-title">GRANULOMETRIA</div>
-            <div className="rp-truck"><img src={TRUCK_IMG} style={{height:42,width:'auto',display:'block'}} alt="caminhao"/></div>
+            <div className="rp-logo-tag" style={{fontSize:7,color:'#c1272d',marginTop:1}}>facilitando a construção civil</div>
           </div>
-
-          {/* Meta */}
-          <div className="rp-meta">
-            <span><strong>RESPONSÁVEL:</strong> {data.resp||'_____________________'}</span>
-            <span><strong>DATA:</strong> {fmtD(date)||'__/__/____'}</span>
-            <span><strong>FILIAL:</strong> {data.filial||'____________'}</span>
-          </div>
-
-          {/* Grade de materiais */}
-          <div className="rp-grid">
-            {/* Linha 1 */}
-            {ROW1.map(id=>{
-              const mc=MATS.find(m=>m.id===id);
-              return <MatPrintCard key={id} mc={mc} md={data[id]}/>;
-            })}
-            {/* Pulverulento — span 2 linhas */}
-            <PulvPrintCard data={data}/>
-            {/* Linha 2 */}
-            {ROW2.map(id=>{
-              const mc=MATS.find(m=>m.id===id);
-              return <MatPrintCard key={id} mc={mc} md={data[id]}/>;
-            })}
-            {/* Célula vazia (col 4, linha 2) */}
-            <div/>
-          </div>
+          <div className="rp-title">GRANULOMETRIA</div>
+          <div className="rp-truck"><img src={TRUCK_IMG} style={{height:42,width:'auto',display:'block'}} alt="caminhao"/></div>
         </div>
+
+        {/* Meta */}
+        <div className="rp-meta">
+          <span><strong>RESPONSÁVEL:</strong> {data.resp||'_____________________'}</span>
+          <span><strong>DATA:</strong> {fmtD(date)||'__/__/____'}</span>
+          <span><strong>FILIAL:</strong> {data.filial||'____________'}</span>
+        </div>
+
+        {/* Grade de materiais — somente os que têm dados */}
+        {activeMats.length>0?(
+          <div style={{display:'grid',gridTemplateColumns:gridCols,gap:4,alignItems:'start'}}>
+            {/* Materiais ativos em grid interno */}
+            <div style={{display:'grid',gridTemplateColumns:`repeat(${numCols},1fr)`,gap:4}}>
+              {activeMats.map(m=>(
+                <MatPrintCard key={m.id} mc={m} md={data[m.id]}/>
+              ))}
+            </div>
+            {/* Pulverulento — só aparece se tiver dados */}
+            {hasPulv&&<PulvPrintCard data={data}/>}
+          </div>
+        ):(
+          <div style={{textAlign:'center',color:'#888',padding:'12px 0',fontSize:9}}>Sem dados de granulometria lançados.</div>
+        )}
+
+        {/* Seção de Umidade */}
+        {hasUmidade&&(
+          <div style={{marginTop:8,borderTop:'1px solid #bbb',paddingTop:6}}>
+            <div style={{fontWeight:700,fontSize:10,marginBottom:4,letterSpacing:1}}>UMIDADE DA AREIA</div>
+            <table style={{borderCollapse:'collapse',fontSize:9}}>
+              <thead>
+                <tr>
+                  <th style={{background:'#e8e8e8',padding:'2px 8px',border:'1px solid #ccc',textAlign:'left',fontWeight:700}}>HORA</th>
+                  <th style={{background:'#e8e8e8',padding:'2px 8px',border:'1px solid #ccc',textAlign:'left',fontWeight:700}}>MATERIAL</th>
+                  <th style={{background:'#e8e8e8',padding:'2px 8px',border:'1px solid #ccc',textAlign:'right',fontWeight:700}}>LEITURA</th>
+                  <th style={{background:'#e8e8e8',padding:'2px 8px',border:'1px solid #ccc',textAlign:'right',fontWeight:700}}>UMIDADE (%)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedUm.map((e,i)=>{
+                  const u=getHumidity(e.matId,e.leitura);
+                  const matLabel=e.matId==='areia_media'?'AREIA NATURAL MÉDIA':'AREIA CAVA FINA';
+                  return(
+                    <tr key={e.id} style={{background:i%2===0?'#fff':'#fafafa'}}>
+                      <td style={{padding:'2px 8px',border:'1px solid #ddd',fontWeight:600}}>{e.hora||'—'}</td>
+                      <td style={{padding:'2px 8px',border:'1px solid #ddd'}}>{matLabel}</td>
+                      <td style={{padding:'2px 8px',border:'1px solid #ddd',textAlign:'right'}}>{e.leitura}</td>
+                      <td style={{padding:'2px 8px',border:'1px solid #ddd',textAlign:'right',fontWeight:700,color:u!==null?'#006600':'#cc0000'}}>
+                        {u!==null?u.toFixed(1)+'%':'Fora do range'}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -424,17 +668,35 @@ function App(){
   const [hist,setHist]=useState([]);
   const [saved,setSaved]=useState(false);
   const [histRecords,setHistRecords]=useState([]);
+  const [printTarget,setPrintTarget]=useState(null);
   const sieveKey=`${date}-${activeMat}`;
-  const firstPulvRef=useRef(null);
 
   useEffect(()=>{setHist(lsKeys('smx:').sort().reverse())},[]);
   useEffect(()=>{
-    const d=lsGet(`smx:${date}`);setDayData(d||emptyDay());setSaved(!!d);
+    const d=lsGet(`smx:${date}`);
+    if(d){
+      // Migra formato antigo de umidade se necessário
+      if(d.umidade&&!Array.isArray(d.umidade))d.umidade=migrateUmidade(d.umidade);
+      setDayData(d);setSaved(true);
+    } else {setDayData(emptyDay());setSaved(false);}
   },[date]);
   useEffect(()=>{
     if(view==='historico')
       setHistRecords(hist.map(d=>({date:d,data:lsGet(`smx:${d}`)})).filter(r=>r.data));
   },[view,hist]);
+
+  /* Print single record effect */
+  useEffect(()=>{
+    if(printTarget){
+      document.body.classList.add('printing-single');
+      const cleanup=()=>{
+        document.body.classList.remove('printing-single');
+        setPrintTarget(null);
+      };
+      window.addEventListener('afterprint',cleanup,{once:true});
+      window.print();
+    }
+  },[printTarget]);
 
   const handleSievesChange=useCallback((masses)=>{
     setDayData(p=>({...p,[activeMat]:{...p[activeMat],masses}}));setSaved(false);
@@ -442,24 +704,35 @@ function App(){
 
   const setField=(path,val)=>{
     setSaved(false);
-    if(path.includes('.')){const[mid,...rest]=path.split('.');setDayData(p=>({...p,[mid]:{...p[mid],[rest.join('.')]:val}}));}
-    else setDayData(p=>({...p,[path]:val}));
+    if(path.includes('.')){
+      const[mid,...rest]=path.split('.');
+      setDayData(p=>({...p,[mid]:{...(p[mid]||{}),[rest.join('.')]:val}}));
+    } else setDayData(p=>({...p,[path]:val}));
   };
 
   const save=()=>{
     if(lsSet(`smx:${date}`,dayData)){setSaved(true);setHist(p=>[...new Set([date,...p])].sort().reverse());}
     else alert('Erro ao salvar.');
   };
+  const addUmidade=(entry)=>{
+    setSaved(false);
+    setDayData(p=>({...p,umidade:[...(Array.isArray(p.umidade)?p.umidade:[]),entry]}));
+  };
+  const removeUmidade=(id)=>{
+    setSaved(false);
+    setDayData(p=>({...p,umidade:(Array.isArray(p.umidade)?p.umidade:[]).filter(e=>e.id!==id)}));
+  };
   const delH=(d)=>{
     if(!confirm(`Apagar dados de ${fmtD(d)}?`))return;
     lsDel(`smx:${d}`);setHist(p=>p.filter(x=>x!==d));setHistRecords(p=>p.filter(r=>r.date!==d));
   };
 
-  const mc=MATS.find(m=>m.id===activeMat);
-  const md=dayData[activeMat]||emptyMat(mc);
+  const mc=activeMat!=='pulverulento'?MATS.find(m=>m.id===activeMat):null;
+  const md=mc?(dayData[activeMat]||emptyMat(mc)):null;
 
   return(
     <div className="wrap">
+      {/* Cabeçalho */}
       <div className="hdr no-print">
         <div className="hdr-top">
           <Logo/>
@@ -472,17 +745,21 @@ function App(){
         </div>
       </div>
 
+      {/* Nav principal */}
       <div className="nav no-print">
-        {[['entrada','Entrada'],['relatorio','Relatório'],['historico','Histórico']].map(([id,lbl])=>(
+        {[['entrada','Entrada'],['umidade','Umidade'],['historico','Histórico']].map(([id,lbl])=>(
           <button key={id} className={`nav-btn${view===id?' on':''}`} onClick={()=>setView(id)}>{lbl}</button>
         ))}
       </div>
 
+      {/* ── ABA ENTRADA ── */}
       {view==='entrada'&&(
         <div>
           <div className="mat-tabs no-print">
-            {MATS.map(m=>{
-              const done=calcMat(dayData[m.id]||emptyMat(m),m.sieves).tot>0;
+            {MAT_TABS.map(m=>{
+              const done=m.id==='pulverulento'
+                ?MATS.some(mat=>pf((dayData[mat.id]||{}).pulvMf)>0)
+                :calcMat(dayData[m.id]||emptyMat(m),m.sieves).tot>0;
               return(
                 <button key={m.id} className={`mat-tab${activeMat===m.id?' on':done?' done':''}`} onClick={()=>setActiveMat(m.id)}>
                   {m.short}{done&&activeMat!==m.id?' ✓':''}
@@ -491,43 +768,18 @@ function App(){
             })}
           </div>
           <div className="pad">
-            <div className="card">
-              <div style={{fontWeight:500,fontSize:14,color:'#c1272d',marginBottom:10}}>{mc.label}</div>
-              <div className="fgrid">
-                <div><div className="flbl">NF</div><input className="inp" value={md.nf||''} onChange={e=>setField(`${activeMat}.nf`,e.target.value)} placeholder="Nota fiscal"/></div>
-                <div><div className="flbl">Placa</div><input className="inp" value={md.placa||''} onChange={e=>setField(`${activeMat}.placa`,e.target.value)} placeholder="ABC-1234"/></div>
+            {activeMat==='pulverulento'?(
+              <PulvTab dayData={dayData} setField={setField}/>
+            ):(
+              <div className="card">
+                <div style={{fontWeight:500,fontSize:14,color:'#c1272d',marginBottom:10}}>{mc.label}</div>
+                <div className="fgrid">
+                  <div><div className="flbl">NF</div><input className="inp" value={md.nf||''} onChange={e=>setField(`${activeMat}.nf`,e.target.value)} placeholder="Nota fiscal"/></div>
+                  <div><div className="flbl">Placa</div><input className="inp" value={md.placa||''} onChange={e=>setField(`${activeMat}.placa`,e.target.value)} placeholder="ABC-1234"/></div>
+                </div>
+                <SieveTable key={sieveKey} mc={mc} initMasses={md.masses} onUpdate={handleSievesChange}/>
               </div>
-              <SieveTable key={sieveKey} mc={mc} initMasses={md.masses} onUpdate={handleSievesChange} firstPulvRef={firstPulvRef}/>
-            </div>
-
-            <div className="card alt">
-              <div className="sec-ttl">Pulverulento</div>
-              <div className="tbl-wrap">
-                <table>
-                  <thead><tr><th className="l">Material</th><th className="r">MI (g)</th><th className="r">MF (g)</th><th className="r">Resultado (%)</th></tr></thead>
-                  <tbody>
-                    {MATS.map((m,i)=>{
-                      const md2=dayData[m.id]||emptyMat(m);
-                      const res=pulvRes(m.pulvMi,md2.pulvMf);
-                      return(
-                        <tr key={m.id} className={i%2===0?'e':'o'}>
-                          <td className="l" style={{fontSize:12}}>{m.label}</td>
-                          <td className="r">{m.pulvMi}</td>
-                          <td className="r" style={{padding:'3px 4px',minWidth:90}}>
-                            <input ref={i===0?firstPulvRef:null} type="text" inputMode="decimal"
-                              className="inp inp-r inp-sm" value={md2.pulvMf||''}
-                              onChange={e=>{const v=e.target.value.replace(/[^0-9.,]/g,'').replace(',','.');setField(`${m.id}.pulvMf`,v);}}
-                              onFocus={e=>e.target.select()} placeholder="0" style={{width:'100%'}}/>
-                          </td>
-                          <td className="r">{res!==null?res.toFixed(2)+'%':'—'}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
+            )}
             <div className="save-bar">
               {saved&&<span className="saved">✓ Salvo — {fmtD(date)}</span>}
               <button className="btn-save" onClick={save}>Salvar dados do dia</button>
@@ -536,8 +788,18 @@ function App(){
         </div>
       )}
 
-      {view==='relatorio'&&<DayReport data={dayData} date={date} showPrint={true}/>}
+      {/* ── ABA UMIDADE ── */}
+      {view==='umidade'&&(
+        <UmidadeView
+          entries={Array.isArray(dayData.umidade)?dayData.umidade:migrateUmidade(dayData.umidade)}
+          onAdd={addUmidade}
+          onRemove={removeUmidade}
+          saved={saved}
+          onSave={save}
+          date={date}/>
+      )}
 
+      {/* ── ABA HISTÓRICO ── */}
       {view==='historico'&&(
         <div className="pad">
           {histRecords.length===0
@@ -549,12 +811,22 @@ function App(){
                     <div className="hist-hdr-date">{fmtD(rec.date)}{rec.date===toDay()&&<span style={{fontSize:10,marginLeft:8,opacity:.7}}>(hoje)</span>}</div>
                     {(rec.data.resp||rec.data.filial)&&<div className="hist-hdr-meta">{rec.data.resp&&`Resp: ${rec.data.resp}`}{rec.data.resp&&rec.data.filial&&' · '}{rec.data.filial&&`Filial: ${rec.data.filial}`}</div>}
                   </div>
-                  <button className="btn-del" onClick={()=>delH(rec.date)}>Apagar</button>
+                  <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                    <button className="btn-print-hist" onClick={()=>setPrintTarget(rec)}>⎙ Imprimir</button>
+                    <button className="btn-del" onClick={()=>delH(rec.date)}>Apagar</button>
+                  </div>
                 </div>
-                <DayReport data={rec.data} date={rec.date} showPrint={false}/>
+                <DayReport data={rec.data} date={rec.date}/>
               </div>
             ))
           }
+        </div>
+      )}
+
+      {/* Overlay de impressão de registro único */}
+      {printTarget&&(
+        <div id="print-single">
+          <DayReport data={printTarget.data} date={printTarget.date}/>
         </div>
       )}
     </div>
