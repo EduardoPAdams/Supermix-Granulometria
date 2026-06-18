@@ -731,6 +731,7 @@ function App(){
   const md=mc?(dayData[activeMat]||emptyMat(mc)):null;
 
   return(
+    <>
     <div className="wrap">
       {/* Cabeçalho */}
       <div className="hdr no-print">
@@ -824,12 +825,13 @@ function App(){
       )}
 
       {/* Overlay de impressão de registro único */}
-      {printTarget&&(
-        <div id="print-single">
-          <DayReport data={printTarget.data} date={printTarget.date}/>
-        </div>
-      )}
     </div>
+    {printTarget&&(
+      <div id="print-single">
+        <DayReport data={printTarget.data} date={printTarget.date}/>
+      </div>
+    )}
+    </>
   );
 }
 
