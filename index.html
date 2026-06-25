@@ -172,6 +172,8 @@ tr.e{background:#fff}tr.o{background:#fafafa}tr.tot{background:#f5f5f5;font-weig
 <script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.29.7/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script type="text/babel">
 const {useState,useEffect,useCallback,useRef,useMemo,memo}=React;
 const TRUCK_IMG=window.TRUCK_IMG;
@@ -720,6 +722,7 @@ function App(){
   const [saved,setSaved]=useState(false);
   const [histRecords,setHistRecords]=useState([]);
   const [printTarget,setPrintTarget]=useState(null);
+  const [pdfTarget,setPdfTarget]=useState(null);
   const sieveKey=`${date}-${activeMat}`;
 
   useEffect(()=>{setHist(lsKeys('smx:').sort().reverse())},[]);
@@ -748,6 +751,47 @@ function App(){
       window.print();
     }
   },[printTarget]);
+
+  /* PDF single record effect */
+  useEffect(()=>{
+    if(!pdfTarget)return;
+    setTimeout(async()=>{
+      const el=document.getElementById('pdf-single');
+      if(!el){setPdfTarget(null);return;}
+      try{
+        const canvas=await html2canvas(el,{scale:2,backgroundColor:'#ffffff',useCORS:true,logging:false});
+        const {jsPDF}=window.jspdf;
+        const pdf=new jsPDF({orientation:'landscape',unit:'px',format:'a4'});
+        const pageW=pdf.internal.pageSize.getWidth();
+        const pageH=pdf.internal.pageSize.getHeight();
+        const ratio=pageW/canvas.width;
+        const totalH=canvas.height*ratio;
+        if(totalH<=pageH){
+          pdf.addImage(canvas.toDataURL('image/jpeg',0.93),'JPEG',0,0,pageW,totalH);
+        } else {
+          const pxPerPage=Math.floor(pageH/ratio);
+          let y=0;
+          while(y<canvas.height){
+            const sliceH=Math.min(pxPerPage,canvas.height-y);
+            const sc=document.createElement('canvas');
+            sc.width=canvas.width;sc.height=sliceH;
+            const ctx=sc.getContext('2d');
+            ctx.fillStyle='#fff';ctx.fillRect(0,0,sc.width,sliceH);
+            ctx.drawImage(canvas,0,-y);
+            if(y>0)pdf.addPage();
+            pdf.addImage(sc.toDataURL('image/jpeg',0.93),'JPEG',0,0,pageW,sliceH*ratio);
+            y+=sliceH;
+          }
+        }
+        pdf.save(`granulometria-${pdfTarget.date}.pdf`);
+      }catch(err){
+        console.error(err);
+        alert('Erro ao gerar PDF.');
+      }finally{
+        setPdfTarget(null);
+      }
+    },150);
+  },[pdfTarget]);
 
   const handleSievesChange=useCallback((masses)=>{
     setDayData(p=>({...p,[activeMat]:{...p[activeMat],masses}}));setSaved(false);
@@ -865,6 +909,11 @@ function App(){
                   </div>
                   <div style={{display:'flex',gap:8,alignItems:'center'}}>
                     <button className="btn-print-hist" onClick={()=>setPrintTarget(rec)}>⎙ Imprimir</button>
+                    <button className="btn-print-hist" onClick={()=>setPdfTarget(rec)}
+                      disabled={pdfTarget?.date===rec.date}
+                      style={{opacity:pdfTarget?.date===rec.date?0.5:1,cursor:pdfTarget?.date===rec.date?'default':'pointer'}}>
+                      {pdfTarget?.date===rec.date?'⏳ PDF...':'⬇ PDF'}
+                    </button>
                     <button className="btn-del" onClick={()=>delH(rec.date)}>Apagar</button>
                   </div>
                 </div>
@@ -880,6 +929,11 @@ function App(){
     {printTarget&&(
       <div id="print-single">
         <DayReport data={printTarget.data} date={printTarget.date}/>
+      </div>
+    )}
+    {pdfTarget&&(
+      <div id="pdf-single" style={{position:'fixed',left:'-9999px',top:0,width:960,background:'#fff',padding:'14px'}}>
+        <DayReport data={pdfTarget.data} date={pdfTarget.date}/>
       </div>
     )}
     </>
