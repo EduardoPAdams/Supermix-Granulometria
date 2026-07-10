@@ -152,3 +152,17 @@ tr.e{background:#fff}tr.o{background:#fafafa}tr.tot{background:#f5f5f5;font-weig
   body.printing-single .wrap{display:none!important}
   body.printing-single #print-single{display:block!important}
 }
+
+/* ── ABA GRÁFICO ─────────────────────── */
+.gr-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:10px}
+.gr-card{background:#fff;border:1px solid #e0e0e0;border-radius:10px;padding:10px 12px}
+.gr-card-lbl{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
+.gr-card-val{font-size:22px;font-weight:700;color:#0a5c44;line-height:1.1}
+.gr-card-val.warn{color:#e65100}
+.gr-card-sub{font-size:10px;color:#aaa;margin-top:3px}
+.gr-svg-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.gr-svg{width:100%;min-width:560px;height:auto;display:block}
+.gr-legend{display:flex;gap:16px;justify-content:center;font-size:11px;color:#666;margin-top:8px;flex-wrap:wrap}
+.gr-legend span{display:inline-flex;align-items:center;gap:5px}
+.gr-dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+.gr-band{width:16px;height:9px;background:#e1f5ee;border:1px dashed #5dcaa5;display:inline-block}

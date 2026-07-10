@@ -7,6 +7,7 @@ import Logo from './components/Logo.jsx'
 import SieveTable from './components/SieveTable.jsx'
 import PulvTab from './components/PulvTab.jsx'
 import UmidadeView from './components/UmidadeView.jsx'
+import GraficoView from './components/GraficoView.jsx'
 import DayReport from './components/DayReport.jsx'
 
 export default function App() {
@@ -176,6 +177,7 @@ export default function App() {
           {[
             ['entrada', 'Entrada'],
             ['umidade', 'Umidade'],
+            ['grafico', 'Gráfico'],
             ['historico', 'Histórico'],
           ].map(([id, lbl]) => (
             <button key={id} className={`nav-btn${view === id ? ' on' : ''}`} onClick={() => setView(id)}>
@@ -241,6 +243,9 @@ export default function App() {
             date={date}
           />
         )}
+
+        {/* ── ABA GRÁFICO ── */}
+        {view === 'grafico' && <GraficoView key={saved ? 's' : 'u'} />}
 
         {/* ── ABA HISTÓRICO ── */}
         {view === 'historico' && (
