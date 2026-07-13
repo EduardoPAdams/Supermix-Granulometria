@@ -1,3 +1,8 @@
+/**
+ * Relatório completo de um dia, no layout usado tanto para impressão (aba
+ * Histórico → Imprimir) quanto para exportação em PDF. Mostra só os
+ * materiais que tiveram dados lançados naquele dia.
+ */
 import { MATS } from '../data/materials.js'
 import { getHumidity } from '../data/materials.js'
 import { calcMat, emptyMat, migrateUmidade } from '../utils/calc.js'
@@ -77,10 +82,10 @@ export default function DayReport({ data, date }) {
           (() => {
             // Agrupa por numero de leitura
             const grupos = {}
-            sortedUm.forEach((e) => {
-              const n = e.numero ?? 1
-              if (!grupos[n]) grupos[n] = []
-              grupos[n].push(e)
+            sortedUm.forEach((entry) => {
+              const numero = entry.numero ?? 1
+              if (!grupos[numero]) grupos[numero] = []
+              grupos[numero].push(entry)
             })
             const nums = Object.keys(grupos).map(Number).sort((a, b) => a - b)
             return (
@@ -112,24 +117,24 @@ export default function DayReport({ data, date }) {
                           </tr>
                         </thead>
                         <tbody>
-                          {grupos[n].map((e, i) => {
-                            const u = getHumidity(e.matId, e.leitura)
-                            const matLabel = e.matId === 'areia_media' ? 'A.N. MÉD.' : 'A.C. FINA'
+                          {grupos[n].map((entry, i) => {
+                            const pctUmidade = getHumidity(entry.matId, entry.leitura)
+                            const matLabel = entry.matId === 'areia_media' ? 'A.N. MÉD.' : 'A.C. FINA'
                             return (
-                              <tr key={e.id} style={{ background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
-                                <td style={{ padding: '1px 4px', border: '1px solid #ddd', fontWeight: 600 }}>{e.hora || '—'}</td>
+                              <tr key={entry.id} style={{ background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
+                                <td style={{ padding: '1px 4px', border: '1px solid #ddd', fontWeight: 600 }}>{entry.hora || '—'}</td>
                                 <td style={{ padding: '1px 4px', border: '1px solid #ddd' }}>{matLabel}</td>
-                                <td style={{ padding: '1px 4px', border: '1px solid #ddd', textAlign: 'right' }}>{e.leitura}</td>
+                                <td style={{ padding: '1px 4px', border: '1px solid #ddd', textAlign: 'right' }}>{entry.leitura}</td>
                                 <td
                                   style={{
                                     padding: '1px 4px',
                                     border: '1px solid #ddd',
                                     textAlign: 'right',
                                     fontWeight: 700,
-                                    color: u !== null ? '#006600' : '#cc0000',
+                                    color: pctUmidade !== null ? '#006600' : '#cc0000',
                                   }}
                                 >
-                                  {u !== null ? u.toFixed(1) + '%' : '—'}
+                                  {pctUmidade !== null ? pctUmidade.toFixed(1) + '%' : '—'}
                                 </td>
                               </tr>
                             )

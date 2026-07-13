@@ -1,8 +1,13 @@
+/**
+ * Card de um material dentro do relatório impresso/PDF (DayReport):
+ * peneira por peneira, a massa retida, e o MF final com destaque se estiver
+ * fora da faixa aceitável. `mc` = configuração do material, `md` = dados do dia.
+ */
 import { calcMat, emptyMat } from '../utils/calc.js'
 
 export default function MatPrintCard({ mc, md }) {
-  const c = calcMat(md || emptyMat(mc), mc.sieves)
-  const ok = c.tot > 0 && c.mf >= mc.mfMin && c.mf <= mc.mfMax
+  const calc = calcMat(md || emptyMat(mc), mc.sieves)
+  const withinRange = calc.tot > 0 && calc.mf >= mc.mfMin && calc.mf <= mc.mfMax
   return (
     <div className="mat-card">
       <div className="mat-card-hdr">{mc.label}</div>
@@ -22,16 +27,16 @@ export default function MatPrintCard({ mc, md }) {
           </tr>
         </thead>
         <tbody>
-          {c.rows.map((r) => (
-            <tr key={r.key}>
-              <td>{r.key === 'fundo' ? 'FUNDO' : r.key}</td>
-              <td className="r">{r.massa > 0 ? (r.massa % 1 === 0 ? r.massa.toFixed(0) : r.massa.toFixed(1)) : ''}</td>
+          {calc.rows.map((row) => (
+            <tr key={row.key}>
+              <td>{row.key === 'fundo' ? 'FUNDO' : row.key}</td>
+              <td className="r">{row.massa > 0 ? (row.massa % 1 === 0 ? row.massa.toFixed(0) : row.massa.toFixed(1)) : ''}</td>
             </tr>
           ))}
           <tr className="mf-row">
             <td>MF:</td>
-            <td className="r" style={{ color: ok ? '#006600' : '#cc0000' }}>
-              {c.tot > 0 ? c.mf.toFixed(3) : ''}
+            <td className="r" style={{ color: withinRange ? '#006600' : '#cc0000' }}>
+              {calc.tot > 0 ? calc.mf.toFixed(3) : ''}
             </td>
           </tr>
           <tr className="range-row">

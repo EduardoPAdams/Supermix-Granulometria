@@ -1,3 +1,8 @@
+/**
+ * Aba "Gráfico": evolução do Módulo de Finura de um material nos últimos 30
+ * dias, com a faixa aceitável destacada, além de médias e contagem de dias
+ * fora da faixa. É um SVG desenhado manualmente (sem lib de gráficos).
+ */
 import { useMemo, useState } from 'react'
 import { MATS } from '../data/materials.js'
 import { calcMat, pulvRes } from '../utils/calc.js'

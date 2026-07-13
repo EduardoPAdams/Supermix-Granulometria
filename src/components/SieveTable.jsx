@@ -1,39 +1,47 @@
+/**
+ * Tabela de peneiramento de um material: um campo de massa retida por peneira,
+ * com cálculo ao vivo de % retida / % acumulada / % passante e do Módulo de
+ * Finura (ver utils/calc.js). `mc` = configuração do material (peneiras,
+ * faixa de MF aceitável); `md` (em App.jsx) = os dados digitados daquele dia.
+ */
 import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import { calcMat } from '../utils/calc.js'
 
 const SieveTable = memo(function SieveTable({ mc, initMasses, onUpdate }) {
-  const keys = useMemo(() => [...mc.sieves, 'fundo'], [mc.id])
-  const [vals, setVals] = useState(() => {
-    const v = {}
-    keys.forEach((k) => {
-      v[k] = String(initMasses?.[k] ?? '')
+  const rowKeys = useMemo(() => [...mc.sieves, 'fundo'], [mc.id])
+  const [massValues, setMassValues] = useState(() => {
+    const initial = {}
+    rowKeys.forEach((key) => {
+      initial[key] = String(initMasses?.[key] ?? '')
     })
-    return v
+    return initial
   })
-  const refs = useRef({})
-  const calc = useMemo(() => calcMat({ masses: vals }, mc.sieves), [vals, mc.id])
+  const inputRefs = useRef({})
+  const calc = useMemo(() => calcMat({ masses: massValues }, mc.sieves), [massValues, mc.id])
 
+  // Notifica o componente pai a cada alteração, para ele salvar no estado do dia
   useEffect(() => {
-    onUpdate(vals)
-  }, [vals])
+    onUpdate(massValues)
+  }, [massValues])
 
-  const handleChange = (k, raw) => {
-    const c = raw.replace(/[^0-9.,]/g, '').replace(',', '.')
-    setVals((p) => ({ ...p, [k]: c }))
+  const handleChange = (key, raw) => {
+    const cleaned = raw.replace(/[^0-9.,]/g, '').replace(',', '.')
+    setMassValues((prev) => ({ ...prev, [key]: cleaned }))
   }
 
+  // Enter avança o foco para o campo da próxima peneira (agiliza a digitação)
   const handleKey = (e, idx) => {
     if (e.key === 'Enter') {
       e.preventDefault()
-      const nk = keys[idx + 1]
-      if (nk) {
-        refs.current[nk]?.focus()
-        refs.current[nk]?.select()
+      const nextKey = rowKeys[idx + 1]
+      if (nextKey) {
+        inputRefs.current[nextKey]?.focus()
+        inputRefs.current[nextKey]?.select()
       }
     }
   }
 
-  const ok = calc.tot > 0 && calc.mf >= mc.mfMin && calc.mf <= mc.mfMax
+  const withinRange = calc.tot > 0 && calc.mf >= mc.mfMin && calc.mf <= mc.mfMax
 
   return (
     <div>
@@ -55,12 +63,12 @@ const SieveTable = memo(function SieveTable({ mc, initMasses, onUpdate }) {
                 <td className="r" style={{ padding: '3px 4px', minWidth: 100 }}>
                   <input
                     ref={(el) => {
-                      refs.current[row.key] = el
+                      inputRefs.current[row.key] = el
                     }}
                     type="text"
                     inputMode="decimal"
                     className="inp inp-r inp-sm"
-                    value={vals[row.key]}
+                    value={massValues[row.key]}
                     onChange={(e) => handleChange(row.key, e.target.value)}
                     onKeyDown={(e) => handleKey(e, i)}
                     onFocus={(e) => e.target.select()}
@@ -82,12 +90,12 @@ const SieveTable = memo(function SieveTable({ mc, initMasses, onUpdate }) {
         </table>
       </div>
       {calc.tot > 0 && (
-        <div className={ok ? 'mf-ok' : 'mf-warn'}>
+        <div className={withinRange ? 'mf-ok' : 'mf-warn'}>
           <strong>MF: {calc.mf.toFixed(3)}</strong>
           <span style={{ opacity: 0.75 }}>
             faixa: {mc.mfMin} – {mc.mfMax}
           </span>
-          <span>{ok ? '✓ OK' : '⚠ Fora da faixa'}</span>
+          <span>{withinRange ? '✓ OK' : '⚠ Fora da faixa'}</span>
         </div>
       )}
     </div>

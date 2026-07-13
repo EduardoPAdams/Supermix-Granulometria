@@ -1,34 +1,43 @@
-export function lsGet(k) {
+/**
+ * Wrappers seguros em torno do localStorage (não há backend — tudo fica no navegador).
+ * Cada registro diário é salvo com a chave `smx:AAAA-MM-DD`.
+ */
+
+// Lê e faz parse de um valor JSON salvo; retorna null se não existir ou estiver corrompido
+export function lsGet(key) {
   try {
-    const v = localStorage.getItem(k)
-    return v ? JSON.parse(v) : null
+    const raw = localStorage.getItem(key)
+    return raw ? JSON.parse(raw) : null
   } catch {
     return null
   }
 }
 
-export function lsSet(k, v) {
+// Salva um valor como JSON; retorna false se o navegador recusar (ex: modo privado, quota cheia)
+export function lsSet(key, value) {
   try {
-    localStorage.setItem(k, JSON.stringify(v))
+    localStorage.setItem(key, JSON.stringify(value))
     return true
   } catch {
     return false
   }
 }
 
-export function lsDel(k) {
+// Remove uma chave
+export function lsDel(key) {
   try {
-    localStorage.removeItem(k)
+    localStorage.removeItem(key)
   } catch {
     /* noop */
   }
 }
 
-export function lsKeys(p) {
+// Lista o "sufixo" (ex: a data) de todas as chaves que começam com um prefixo (ex: 'smx:')
+export function lsKeys(prefix) {
   try {
     return Object.keys(localStorage)
-      .filter((k) => k.startsWith(p))
-      .map((k) => k.slice(p.length))
+      .filter((key) => key.startsWith(prefix))
+      .map((key) => key.slice(prefix.length))
   } catch {
     return []
   }

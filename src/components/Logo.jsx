@@ -1,3 +1,4 @@
+// Logo "SUPERMIX" no cabeçalho do app (versão para impressão está em DayReport.jsx)
 export default function Logo() {
   return (
     <div className="logo-box">

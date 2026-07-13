@@ -1,3 +1,9 @@
+/**
+ * Aba "Umidade": registra leituras de sensor de umidade da areia ao longo do
+ * dia (uma ou mais "leituras" numeradas, cada uma podendo ter vários horários/
+ * materiais) e converte cada leitura em % de umidade via as tabelas de
+ * referência em data/materials.js.
+ */
 import { useMemo, useState } from 'react'
 import { UM_MATS, getHumidity } from '../data/materials.js'
 import { fmtD, nowHHMM } from '../utils/format.js'
@@ -12,16 +18,16 @@ export default function UmidadeView({ entries, onAdd, onRemove, saved, onSave, d
 
   // Agrupa entradas por número de leitura, ordenadas por hora dentro de cada grupo
   const grupos = useMemo(() => {
-    const g = {}
-    entries.forEach((e) => {
-      const n = e.numero ?? 1
-      if (!g[n]) g[n] = []
-      g[n].push(e)
+    const byNumero = {}
+    entries.forEach((entry) => {
+      const numero = entry.numero ?? 1
+      if (!byNumero[numero]) byNumero[numero] = []
+      byNumero[numero].push(entry)
     })
-    Object.keys(g).forEach((n) => {
-      g[n].sort((a, b) => a.hora.localeCompare(b.hora))
+    Object.keys(byNumero).forEach((numero) => {
+      byNumero[numero].sort((a, b) => a.hora.localeCompare(b.hora))
     })
-    return g
+    return byNumero
   }, [entries])
   const numeros = Object.keys(grupos).map(Number).sort((a, b) => a - b)
 
@@ -120,14 +126,14 @@ export default function UmidadeView({ entries, onAdd, onRemove, saved, onSave, d
                     </tr>
                   </thead>
                   <tbody>
-                    {grupos[n].map((e, i) => {
-                      const mat = UM_MATS.find((m) => m.id === e.matId)
-                      const u = getHumidity(e.matId, e.leitura)
+                    {grupos[n].map((entry, i) => {
+                      const mat = UM_MATS.find((m) => m.id === entry.matId)
+                      const pctUmidade = getHumidity(entry.matId, entry.leitura)
                       return (
-                        <tr key={e.id} style={{ background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
-                          <td style={{ padding: '4px 6px', fontSize: 11, fontWeight: 500, borderBottom: '1px solid #f0f0f0' }}>{e.hora || '—'}</td>
-                          <td style={{ padding: '4px 6px', fontSize: 11, borderBottom: '1px solid #f0f0f0' }}>{mat?.short || e.matId}</td>
-                          <td style={{ padding: '4px 6px', fontSize: 11, textAlign: 'right', borderBottom: '1px solid #f0f0f0' }}>{e.leitura}</td>
+                        <tr key={entry.id} style={{ background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
+                          <td style={{ padding: '4px 6px', fontSize: 11, fontWeight: 500, borderBottom: '1px solid #f0f0f0' }}>{entry.hora || '—'}</td>
+                          <td style={{ padding: '4px 6px', fontSize: 11, borderBottom: '1px solid #f0f0f0' }}>{mat?.short || entry.matId}</td>
+                          <td style={{ padding: '4px 6px', fontSize: 11, textAlign: 'right', borderBottom: '1px solid #f0f0f0' }}>{entry.leitura}</td>
                           <td
                             style={{
                               padding: '4px 6px',
@@ -135,14 +141,14 @@ export default function UmidadeView({ entries, onAdd, onRemove, saved, onSave, d
                               textAlign: 'right',
                               fontWeight: 600,
                               borderBottom: '1px solid #f0f0f0',
-                              color: u !== null ? '#0a5c44' : '#c1272d',
+                              color: pctUmidade !== null ? '#0a5c44' : '#c1272d',
                             }}
                           >
-                            {u !== null ? u.toFixed(1) + '%' : '⚠'}
+                            {pctUmidade !== null ? pctUmidade.toFixed(1) + '%' : '⚠'}
                           </td>
                           <td style={{ textAlign: 'center', padding: '2px 2px', borderBottom: '1px solid #f0f0f0' }}>
                             <button
-                              onClick={() => onRemove(e.id)}
+                              onClick={() => onRemove(entry.id)}
                               style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#c1272d', fontSize: 16, lineHeight: 1, padding: '0 3px', fontFamily: 'inherit' }}
                             >
                               ×

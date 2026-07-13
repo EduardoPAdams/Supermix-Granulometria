@@ -1,3 +1,8 @@
+/**
+ * Componente principal: controla a data selecionada, as 4 abas do app
+ * (Entrada, Umidade, Gráfico, Histórico), o carregamento/gravação dos
+ * registros no localStorage e a geração de impressão/PDF de um dia.
+ */
 import { useCallback, useEffect, useState } from 'react'
 import { MATS, MAT_TABS } from './data/materials.js'
 import { emptyDay, emptyMat, calcMat, migrateUmidade } from './utils/calc.js'
@@ -22,16 +27,18 @@ export default function App() {
   const [pdfTarget, setPdfTarget] = useState(null)
   const sieveKey = `${date}-${activeMat}`
 
+  // Carrega a lista de datas com registros salvos (usada no Histórico), uma vez ao abrir o app
   useEffect(() => {
     setHist(lsKeys('smx:').sort().reverse())
   }, [])
 
+  // Sempre que a data selecionada muda, carrega o registro daquele dia (ou começa um em branco)
   useEffect(() => {
-    const d = lsGet(`smx:${date}`)
-    if (d) {
+    const savedRecord = lsGet(`smx:${date}`)
+    if (savedRecord) {
       // Migra formato antigo de umidade se necessário
-      if (d.umidade && !Array.isArray(d.umidade)) d.umidade = migrateUmidade(d.umidade)
-      setDayData(d)
+      if (savedRecord.umidade && !Array.isArray(savedRecord.umidade)) savedRecord.umidade = migrateUmidade(savedRecord.umidade)
+      setDayData(savedRecord)
       setSaved(true)
     } else {
       setDayData(emptyDay())
@@ -39,11 +46,13 @@ export default function App() {
     }
   }, [date])
 
+  // Ao entrar na aba Histórico, carrega os dados completos de cada data salva
   useEffect(() => {
     if (view === 'historico') setHistRecords(hist.map((d) => ({ date: d, data: lsGet(`smx:${d}`) })).filter((r) => r.data))
   }, [view, hist])
 
-  /* Print single record effect */
+  // Quando printTarget é definido (botão "Imprimir" no Histórico), aciona window.print()
+  // e depois limpa o estado quando a caixa de diálogo de impressão fecha
   useEffect(() => {
     if (printTarget) {
       document.body.classList.add('printing-single')
@@ -56,7 +65,9 @@ export default function App() {
     }
   }, [printTarget])
 
-  /* PDF single record effect */
+  // Quando pdfTarget é definido (botão "PDF" no Histórico), renderiza o relatório
+  // escondido em #pdf-single como imagem (html2canvas) e monta um PDF a partir dela (jsPDF),
+  // paginando se a imagem for mais alta que uma página A4.
   useEffect(() => {
     if (!pdfTarget) return
     setTimeout(async () => {
@@ -143,8 +154,9 @@ export default function App() {
     setHistRecords((p) => p.filter((r) => r.date !== d))
   }
 
-  const mc = activeMat !== 'pulverulento' ? MATS.find((m) => m.id === activeMat) : null
-  const md = mc ? dayData[activeMat] || emptyMat(mc) : null
+  // Material selecionado na aba Entrada (null quando a aba "Pulverulento" está ativa)
+  const activeMaterial = activeMat !== 'pulverulento' ? MATS.find((m) => m.id === activeMat) : null
+  const activeMaterialData = activeMaterial ? dayData[activeMat] || emptyMat(activeMaterial) : null
 
   return (
     <>
@@ -208,18 +220,18 @@ export default function App() {
                 <PulvTab dayData={dayData} setField={setField} />
               ) : (
                 <div className="card">
-                  <div style={{ fontWeight: 500, fontSize: 14, color: '#c1272d', marginBottom: 10 }}>{mc.label}</div>
+                  <div style={{ fontWeight: 500, fontSize: 14, color: '#c1272d', marginBottom: 10 }}>{activeMaterial.label}</div>
                   <div className="fgrid">
                     <div>
                       <div className="flbl">NF</div>
-                      <input className="inp" value={md.nf || ''} onChange={(e) => setField(`${activeMat}.nf`, e.target.value)} placeholder="Nota fiscal" />
+                      <input className="inp" value={activeMaterialData.nf || ''} onChange={(e) => setField(`${activeMat}.nf`, e.target.value)} placeholder="Nota fiscal" />
                     </div>
                     <div>
                       <div className="flbl">Placa</div>
-                      <input className="inp" value={md.placa || ''} onChange={(e) => setField(`${activeMat}.placa`, e.target.value)} placeholder="ABC-1234" />
+                      <input className="inp" value={activeMaterialData.placa || ''} onChange={(e) => setField(`${activeMat}.placa`, e.target.value)} placeholder="ABC-1234" />
                     </div>
                   </div>
-                  <SieveTable key={sieveKey} mc={mc} initMasses={md.masses} onUpdate={handleSievesChange} />
+                  <SieveTable key={sieveKey} mc={activeMaterial} initMasses={activeMaterialData.masses} onUpdate={handleSievesChange} />
                 </div>
               )}
               <div className="save-bar">

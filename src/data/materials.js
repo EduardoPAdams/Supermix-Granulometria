@@ -1,4 +1,14 @@
-/* ── MATERIAIS ── */
+/**
+ * Dados de referência da usina: materiais testados, peneiras de cada um,
+ * faixas aceitáveis de Módulo de Finura e tabelas de umidade por leitura de sensor.
+ * Tudo fixo (não vem de backend) — para adicionar/ajustar um material, é aqui.
+ */
+
+/* ── MATERIAIS ──
+   id: chave interna | label: nome completo | short: nome curto (abas/botões)
+   sieves: peneiras (mm) usadas no ensaio deste material
+   mfMin/mfMax: faixa aceitável do Módulo de Finura
+   pulvMi: massa inicial padrão (g) do ensaio de material pulverulento */
 export const MATS = [
   { id: 'areia_fina', label: 'AREIA CAVA FINA', short: 'A.C.Fina', sieves: ['6.3', '4.8', '2.4', '1.2', '0.6', '0.3', '0.15'], mfMin: 1.496, mfMax: 1.792, pulvMi: 500 },
   { id: 'areia_media', label: 'AREIA NATURAL MEDIA', short: 'A.N.Méd.', sieves: ['6.3', '4.8', '2.4', '1.2', '0.6', '0.3', '0.15'], mfMin: 2.574, mfMax: 2.845, pulvMi: 500 },
@@ -20,7 +30,9 @@ export const UM_MATS = [
   { id: 'areia_fina', label: 'Areia Cava Fina', short: 'A.C. Fina' },
 ]
 
-/* ── TABELAS DE UMIDADE ── */
+/* ── TABELAS DE UMIDADE ──
+   Tabelas de conversão "leitura do sensor → % de umidade", específicas de
+   cada tipo de areia. getHumidity() faz a busca abaixo. */
 export const HUMIDITY_MEDIA = {
   391: 0.1, 392: 0.4, 393: 0.7, 394: 1.0, 395: 1.4, 396: 1.7, 397: 2.0, 398: 2.4, 399: 2.7, 400: 3.1,
   401: 3.4, 402: 3.7, 403: 4.1, 404: 4.4, 405: 4.8, 406: 5.2, 407: 5.5, 408: 5.9, 409: 6.2, 410: 6.6,
