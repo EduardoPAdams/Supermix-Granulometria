@@ -166,3 +166,11 @@ tr.e{background:#fff}tr.o{background:#fafafa}tr.tot{background:#f5f5f5;font-weig
 .gr-legend span{display:inline-flex;align-items:center;gap:5px}
 .gr-dot{width:9px;height:9px;border-radius:50%;display:inline-block}
 .gr-band{width:16px;height:9px;background:#e1f5ee;border:1px dashed #5dcaa5;display:inline-block}
+
+/* ── Login / nuvem ── */
+.login-card{max-width:360px;margin:40px auto 0}
+.login-erro{background:#fff3e0;border:1px solid #ffb74d;color:#e65100;border-radius:6px;padding:6px 10px;font-size:12px;margin-bottom:10px}
+.migrar-banner{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;background:#fff3e0;border:1px solid #ffb74d;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#7a3b00}
+.btn-sair{background:transparent;border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer;font-family:inherit}
+.loading-msg{text-align:center;color:#aaa;padding:40px 0;font-size:13px}
+button:disabled{opacity:.6;cursor:default}

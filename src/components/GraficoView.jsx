@@ -3,10 +3,10 @@
  * dias, com a faixa aceitável destacada, além de médias e contagem de dias
  * fora da faixa. É um SVG desenhado manualmente (sem lib de gráficos).
  */
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { MATS } from '../data/materials.js'
 import { calcMat, pulvRes } from '../utils/calc.js'
-import { lsGet, lsKeys } from '../utils/storage.js'
+import { dbGetRecords } from '../utils/db.js'
 import { fmtD } from '../utils/format.js'
 
 const DAYS = 30
@@ -25,16 +25,16 @@ function ddmm(s) {
 export default function GraficoView() {
   const [selMat, setSelMat] = useState('areia_fina')
 
-  /* Carrega uma única vez todos os registros dos últimos 30 dias */
-  const records = useMemo(() => {
+  /* Carrega da nuvem, uma única vez, os registros dos últimos 30 dias */
+  const [records, setRecords] = useState([])
+  useEffect(() => {
     const start = new Date()
     start.setDate(start.getDate() - (DAYS - 1))
-    start.setHours(0, 0, 0, 0)
-    return lsKeys('smx:')
-      .filter((d) => toDate(d) >= start)
-      .sort()
-      .map((d) => ({ date: d, data: lsGet(`smx:${d}`) }))
-      .filter((r) => r.data)
+    const pad = (n) => String(n).padStart(2, '0')
+    const since = `${start.getFullYear()}-${pad(start.getMonth() + 1)}-${pad(start.getDate())}`
+    dbGetRecords(since)
+      .then((recs) => setRecords(recs.filter((r) => r.data)))
+      .catch((err) => console.error(err))
   }, [])
 
   const mat = MATS.find((m) => m.id === selMat)

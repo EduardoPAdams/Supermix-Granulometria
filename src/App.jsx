@@ -1,13 +1,17 @@
 /**
  * Componente principal: controla a data selecionada, as 4 abas do app
  * (Entrada, Umidade, Gráfico, Histórico), o carregamento/gravação dos
- * registros no localStorage e a geração de impressão/PDF de um dia.
+ * registros na nuvem (Supabase) e a geração de impressão/PDF de um dia.
+ * O componente App() só decide entre a tela de login e o app (MainApp).
  */
 import { useCallback, useEffect, useState } from 'react'
 import { MATS, MAT_TABS } from './data/materials.js'
 import { emptyDay, emptyMat, calcMat, migrateUmidade } from './utils/calc.js'
 import { fmtD, toDay, pf } from './utils/format.js'
-import { lsDel, lsGet, lsKeys, lsSet } from './utils/storage.js'
+import { dbDel, dbGet, dbGetRecords, dbListDates, dbSet } from './utils/db.js'
+import { supabase } from './lib/supabase.js'
+import Login from './components/Login.jsx'
+import MigrarBanner from './components/MigrarBanner.jsx'
 import Logo from './components/Logo.jsx'
 import SieveTable from './components/SieveTable.jsx'
 import PulvTab from './components/PulvTab.jsx'
@@ -16,39 +20,95 @@ import GraficoView from './components/GraficoView.jsx'
 import DayReport from './components/DayReport.jsx'
 
 export default function App() {
+  // undefined = ainda verificando; null = deslogado; objeto = logado
+  const [session, setSession] = useState(undefined)
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setSession(data.session))
+    const { data } = supabase.auth.onAuthStateChange((_event, s) => setSession(s))
+    return () => data.subscription.unsubscribe()
+  }, [])
+
+  if (session === undefined) return <div className="loading-msg">Carregando...</div>
+  if (!session) return <Login />
+  return <MainApp />
+}
+
+function MainApp() {
   const [view, setView] = useState('entrada')
   const [date, setDate] = useState(toDay())
   const [activeMat, setActiveMat] = useState('areia_fina')
   const [dayData, setDayData] = useState(() => emptyDay())
   const [hist, setHist] = useState([])
+  const [histLoaded, setHistLoaded] = useState(false)
+  const [histLoading, setHistLoading] = useState(false)
+  const [dayStatus, setDayStatus] = useState('loading') // 'loading' | 'ok' | 'error'
+  const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [histRecords, setHistRecords] = useState([])
   const [printTarget, setPrintTarget] = useState(null)
   const [pdfTarget, setPdfTarget] = useState(null)
   const sieveKey = `${date}-${activeMat}`
 
-  // Carrega a lista de datas com registros salvos (usada no Histórico), uma vez ao abrir o app
-  useEffect(() => {
-    setHist(lsKeys('smx:').sort().reverse())
+  // Carrega da nuvem a lista de datas com registros salvos (usada no Histórico e na migração)
+  const loadHist = useCallback(async () => {
+    try {
+      setHist(await dbListDates())
+      setHistLoaded(true)
+    } catch (err) {
+      console.error(err)
+      alert('Erro ao carregar a lista de registros. Verifique a internet.')
+    }
   }, [])
 
-  // Sempre que a data selecionada muda, carrega o registro daquele dia (ou começa um em branco)
   useEffect(() => {
-    const savedRecord = lsGet(`smx:${date}`)
-    if (savedRecord) {
-      // Migra formato antigo de umidade se necessário
-      if (savedRecord.umidade && !Array.isArray(savedRecord.umidade)) savedRecord.umidade = migrateUmidade(savedRecord.umidade)
-      setDayData(savedRecord)
-      setSaved(true)
-    } else {
-      setDayData(emptyDay())
-      setSaved(false)
+    loadHist()
+  }, [loadHist])
+
+  // Sempre que a data selecionada muda, carrega o registro daquele dia (ou começa um em branco).
+  // Enquanto carrega (ou se der erro) o salvamento fica bloqueado, pra não sobrescrever o dia com dados vazios.
+  useEffect(() => {
+    let cancel = false
+    setDayStatus('loading')
+    dbGet(date)
+      .then((savedRecord) => {
+        if (cancel) return
+        if (savedRecord) {
+          // Migra formato antigo de umidade se necessário
+          if (savedRecord.umidade && !Array.isArray(savedRecord.umidade)) savedRecord.umidade = migrateUmidade(savedRecord.umidade)
+          setDayData(savedRecord)
+          setSaved(true)
+        } else {
+          setDayData(emptyDay())
+          setSaved(false)
+        }
+        setDayStatus('ok')
+      })
+      .catch((err) => {
+        if (cancel) return
+        console.error(err)
+        setDayStatus('error')
+      })
+    return () => {
+      cancel = true
     }
   }, [date])
 
-  // Ao entrar na aba Histórico, carrega os dados completos de cada data salva
+  // Ao entrar na aba Histórico, carrega da nuvem os dados completos de todos os dias
   useEffect(() => {
-    if (view === 'historico') setHistRecords(hist.map((d) => ({ date: d, data: lsGet(`smx:${d}`) })).filter((r) => r.data))
+    if (view !== 'historico') return
+    let cancel = false
+    setHistLoading(true)
+    dbGetRecords()
+      .then((recs) => !cancel && setHistRecords(recs.reverse()))
+      .catch((err) => {
+        console.error(err)
+        if (!cancel) alert('Erro ao carregar o histórico.')
+      })
+      .finally(() => !cancel && setHistLoading(false))
+    return () => {
+      cancel = true
+    }
   }, [view, hist])
 
   // Quando printTarget é definido (botão "Imprimir" no Histórico), aciona window.print()
@@ -130,11 +190,19 @@ export default function App() {
     } else setDayData((p) => ({ ...p, [path]: val }))
   }
 
-  const save = () => {
-    if (lsSet(`smx:${date}`, dayData)) {
+  const save = async () => {
+    if (dayStatus !== 'ok' || saving) return
+    setSaving(true)
+    try {
+      await dbSet(date, dayData)
       setSaved(true)
       setHist((p) => [...new Set([date, ...p])].sort().reverse())
-    } else alert('Erro ao salvar.')
+    } catch (err) {
+      console.error(err)
+      alert('Erro ao salvar. Verifique a internet e tente de novo.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const addUmidade = (entry) => {
@@ -147,9 +215,15 @@ export default function App() {
     setDayData((p) => ({ ...p, umidade: (Array.isArray(p.umidade) ? p.umidade : []).filter((e) => e.id !== id) }))
   }
 
-  const delH = (d) => {
+  const delH = async (d) => {
     if (!confirm(`Apagar dados de ${fmtD(d)}?`)) return
-    lsDel(`smx:${d}`)
+    try {
+      await dbDel(d)
+    } catch (err) {
+      console.error(err)
+      alert('Erro ao apagar.')
+      return
+    }
     setHist((p) => p.filter((x) => x !== d))
     setHistRecords((p) => p.filter((r) => r.date !== d))
   }
@@ -165,12 +239,17 @@ export default function App() {
         <div className="hdr no-print">
           <div className="hdr-top">
             <Logo />
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <input
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
               style={{ background: 'rgba(255,255,255,.15)', border: '1px solid rgba(255,255,255,.35)', color: '#fff', borderRadius: 6, padding: '5px 8px', fontSize: 12, fontFamily: 'inherit' }}
             />
+            <button className="btn-sair" onClick={() => supabase.auth.signOut()}>
+              Sair
+            </button>
+            </div>
           </div>
           <div className="hdr-fields">
             <div>
@@ -197,6 +276,12 @@ export default function App() {
             </button>
           ))}
         </div>
+
+        {histLoaded && (
+          <div className="pad" style={{ paddingBottom: 0 }}>
+            <MigrarBanner cloudDates={hist} onDone={loadHist} />
+          </div>
+        )}
 
         {/* ── ABA ENTRADA ── */}
         {view === 'entrada' && (
@@ -235,9 +320,10 @@ export default function App() {
                 </div>
               )}
               <div className="save-bar">
+                {dayStatus === 'error' && <span style={{ fontSize: 12, color: '#e65100' }}>Erro ao carregar o dia — recarregue a página</span>}
                 {saved && <span className="saved">✓ Salvo — {fmtD(date)}</span>}
-                <button className="btn-save" onClick={save}>
-                  Salvar dados do dia
+                <button className="btn-save" onClick={save} disabled={dayStatus !== 'ok' || saving}>
+                  {dayStatus === 'loading' ? 'Carregando...' : saving ? 'Salvando...' : 'Salvar dados do dia'}
                 </button>
               </div>
             </div>
@@ -262,7 +348,9 @@ export default function App() {
         {/* ── ABA HISTÓRICO ── */}
         {view === 'historico' && (
           <div className="pad">
-            {histRecords.length === 0 ? (
+            {histLoading && histRecords.length === 0 ? (
+              <div className="loading-msg">Carregando...</div>
+            ) : histRecords.length === 0 ? (
               <div style={{ textAlign: 'center', color: '#aaa', padding: '40px 0', fontSize: 13, lineHeight: 2 }}>
                 Nenhum registro salvo ainda.
                 <br />
