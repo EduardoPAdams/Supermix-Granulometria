@@ -64,9 +64,11 @@ const vazio = () => ({
   data: toDay(),
   nf: '',
   motorista: '',
+  laboratorista: '',
   cliente: '',
   slump_nf: '',
   slump_obtido: '',
+  agua_retida: '',
   agua_central: '',
   agua_obra: '',
   anomalias: [],
@@ -147,6 +149,8 @@ export default function VisitaApp({ onVoltar }) {
         nf: form.nf.trim(),
         motorista: form.motorista.trim(),
         cliente: form.cliente.trim(),
+        laboratorista: (form.laboratorista || '').trim(),
+        agua_retida: num(form.agua_retida),
         agua_central: num(form.agua_central),
         agua_obra: num(form.agua_obra),
       })
@@ -169,6 +173,8 @@ export default function VisitaApp({ onVoltar }) {
     setForm({
       ...vazio(),
       ...v,
+      laboratorista: v.laboratorista ?? '',
+      agua_retida: v.agua_retida ?? '',
       agua_central: v.agua_central ?? '',
       agua_obra: v.agua_obra ?? '',
       anomalias: v.anomalias || [],
@@ -205,15 +211,15 @@ export default function VisitaApp({ onVoltar }) {
     const q = (x) => `"${String(x ?? '').replace(/"/g, '""')}"`
     const cab = [
       'Filial', 'Data', 'Nota fiscal', 'Motorista/BT', 'Cliente', 'Slump NF', 'Slump obtido',
-      'Água central (L)', 'Água obra (L)',
+      'Água retida (L)', 'Água central (L)', 'Água obra (L)',
       ...ANOMALIAS.map(([c, t]) => `${c} ${t}`), 'Outros',
-      ...ACOES.map(([c, t]) => `${c} ${t}`), 'Observações',
+      ...ACOES.map(([c, t]) => `${c} ${t}`), 'Observações', 'Laboratorista',
     ]
     const linhas = filtradas.map((v) => [
       v.filial, fmtD(v.data), v.nf, v.motorista, v.cliente, v.slump_nf, v.slump_obtido,
-      String(v.agua_central ?? '').replace('.', ','), String(v.agua_obra ?? '').replace('.', ','),
+      String(v.agua_retida ?? '').replace('.', ','), String(v.agua_central ?? '').replace('.', ','), String(v.agua_obra ?? '').replace('.', ','),
       ...ANOMALIAS.map(([c]) => ((v.anomalias || []).includes(c) ? 'X' : '')), v.outros,
-      ...ACOES.map(([c]) => ((v.acoes || []).includes(c) ? 'X' : '')), v.obs,
+      ...ACOES.map(([c]) => ((v.acoes || []).includes(c) ? 'X' : '')), v.obs, v.laboratorista,
     ])
     const csv = '﻿' + [cab, ...linhas].map((l) => l.map(q).join(';')).join('\r\n')
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
@@ -281,12 +287,20 @@ export default function VisitaApp({ onVoltar }) {
                 <input className="inp" value={form.motorista} onChange={(e) => set('motorista', e.target.value)} placeholder="Nome ou nº do BT" />
               </div>
             </div>
-            <div className="flbl">Cliente / obra</div>
-            <input className="inp" value={form.cliente} onChange={(e) => set('cliente', e.target.value)} placeholder="Cliente" />
+            <div className="fgrid" style={{ marginBottom: 0 }}>
+              <div>
+                <div className="flbl">Cliente / obra</div>
+                <input className="inp" value={form.cliente} onChange={(e) => set('cliente', e.target.value)} placeholder="Cliente" />
+              </div>
+              <div>
+                <div className="flbl">Laboratorista</div>
+                <input className="inp" value={form.laboratorista} onChange={(e) => set('laboratorista', e.target.value)} placeholder="Quem fez a visita" />
+              </div>
+            </div>
           </div>
 
           <div className="card">
-            <div className="sec-ttl">Slump e água retida</div>
+            <div className="sec-ttl">Slump</div>
             <div className="fgrid">
               <div>
                 <div className="flbl">Slump da NF (cm)</div>
@@ -295,14 +309,6 @@ export default function VisitaApp({ onVoltar }) {
               <div>
                 <div className="flbl">Slump obtido (cm)</div>
                 <input className="inp" inputMode="decimal" value={form.slump_obtido} onChange={(e) => set('slump_obtido', e.target.value)} placeholder="ex.: 13" />
-              </div>
-              <div>
-                <div className="flbl">Água retida central (L)</div>
-                <input className="inp" inputMode="decimal" value={form.agua_central} onChange={(e) => set('agua_central', e.target.value)} placeholder="0" />
-              </div>
-              <div>
-                <div className="flbl">Água retida obra (L)</div>
-                <input className="inp" inputMode="decimal" value={form.agua_obra} onChange={(e) => set('agua_obra', e.target.value)} placeholder="0" />
               </div>
             </div>
             {slump === 'acima' ? (
@@ -314,6 +320,24 @@ export default function VisitaApp({ onVoltar }) {
             ) : (
               <div className="vs-dica">Escreva a faixa como “10 ± 2” ou “8 a 12” para conferir o slump.</div>
             )}
+          </div>
+
+          <div className="card">
+            <div className="sec-ttl">Água (L)</div>
+            <div className="vs-agua">
+              <div>
+                <div className="flbl">Retida</div>
+                <input className="inp" inputMode="decimal" value={form.agua_retida} onChange={(e) => set('agua_retida', e.target.value)} placeholder="0" />
+              </div>
+              <div>
+                <div className="flbl">Central</div>
+                <input className="inp" inputMode="decimal" value={form.agua_central} onChange={(e) => set('agua_central', e.target.value)} placeholder="0" />
+              </div>
+              <div>
+                <div className="flbl">Obra</div>
+                <input className="inp" inputMode="decimal" value={form.agua_obra} onChange={(e) => set('agua_obra', e.target.value)} placeholder="0" />
+              </div>
+            </div>
           </div>
 
           <div className="card">
@@ -427,14 +451,20 @@ export default function VisitaApp({ onVoltar }) {
                       <b>Cliente</b>
                       {v.cliente || '—'}
                     </div>
+                    {v.laboratorista && (
+                      <div>
+                        <b>Laboratorista</b>
+                        {v.laboratorista}
+                      </div>
+                    )}
                     <div>
                       <b>Slump NF → obtido</b>
                       {v.slump_nf || '—'} → {v.slump_obtido || '—'}
                       {st === 'acima' ? ' ▲' : st === 'abaixo' ? ' ▼' : ''}
                     </div>
                     <div>
-                      <b>Água central / obra</b>
-                      {v.agua_central ?? 0} / {v.agua_obra ?? 0} L
+                      <b>Água retida / central / obra</b>
+                      {v.agua_retida ?? 0} / {v.agua_central ?? 0} / {v.agua_obra ?? 0} L
                     </div>
                   </div>
                   <div className="vs-chips">
@@ -480,7 +510,7 @@ function Resumo({ lista, carregando }) {
   const tot = sel.length
   const com = sel.filter(temAnomalia).length
   const acima = sel.filter((v) => statusSlump(v.slump_nf, v.slump_obtido) === 'acima').length
-  const agua = sel.reduce((s, v) => s + (Number(v.agua_obra) || 0), 0)
+  const soma = (campo) => sel.reduce((s, v) => s + (Number(v[campo]) || 0), 0)
 
   const barras = (itens, campo, comOutros) => {
     const linhas = itens.map(([c, t]) => [c, t, sel.filter((v) => (v[campo] || []).includes(c)).length])
@@ -537,8 +567,11 @@ function Resumo({ lista, carregando }) {
               <div className={`gr-card-val${acima ? ' warn' : ''}`}>{acima}</div>
             </div>
             <div className="gr-card">
-              <div className="gr-card-lbl">Água retida na obra</div>
-              <div className="gr-card-val">{agua.toLocaleString('pt-BR')} L</div>
+              <div className="gr-card-lbl">Água (L)</div>
+              <div className="gr-card-val">{soma('agua_retida').toLocaleString('pt-BR')}</div>
+              <div className="gr-card-sub">
+                retida · central {soma('agua_central').toLocaleString('pt-BR')} · obra {soma('agua_obra').toLocaleString('pt-BR')}
+              </div>
             </div>
           </div>
           {tot === 0 ? (
