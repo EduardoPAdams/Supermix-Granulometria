@@ -1,8 +1,9 @@
 /**
- * Componente principal: controla a data selecionada, as 4 abas do app
+ * Componente principal. App() decide entre login, a tela inicial (escolha do
+ * módulo) e o módulo escolhido: Granulometria (MainApp, abaixo) ou Visita Surpresa.
+ * MainApp: controla a data selecionada, as 4 abas do app
  * (Entrada, Umidade, Gráfico, Histórico), o carregamento/gravação dos
  * registros na nuvem (Supabase) e a geração de impressão/PDF de um dia.
- * O componente App() só decide entre a tela de login e o app (MainApp).
  */
 import { useCallback, useEffect, useState } from 'react'
 import { MATS, MAT_TABS } from './data/materials.js'
@@ -11,6 +12,8 @@ import { fmtD, toDay, pf } from './utils/format.js'
 import { dbDel, dbGet, dbGetRecords, dbListDates, dbSet } from './utils/db.js'
 import { supabase } from './lib/supabase.js'
 import Login from './components/Login.jsx'
+import Inicio from './components/Inicio.jsx'
+import VisitaApp from './components/VisitaApp.jsx'
 import MigrarBanner from './components/MigrarBanner.jsx'
 import Logo from './components/Logo.jsx'
 import SieveTable from './components/SieveTable.jsx'
@@ -29,12 +32,22 @@ export default function App() {
     return () => data.subscription.unsubscribe()
   }, [])
 
+  // Módulo escolhido na tela inicial. Começa sempre em null: quem entra escolhe o que vai fazer.
+  const [modulo, setModulo] = useState(null)
+
+  // Ao sair, volta para a tela de escolha no próximo login
+  useEffect(() => {
+    if (!session) setModulo(null)
+  }, [session])
+
   if (session === undefined) return <div className="loading-msg">Carregando...</div>
   if (!session) return <Login />
-  return <MainApp />
+  if (modulo === 'granulometria') return <MainApp onVoltar={() => setModulo(null)} />
+  if (modulo === 'visita') return <VisitaApp onVoltar={() => setModulo(null)} />
+  return <Inicio email={session.user?.email} onEscolher={setModulo} />
 }
 
-function MainApp() {
+function MainApp({ onVoltar }) {
   const [view, setView] = useState('entrada')
   const [date, setDate] = useState(toDay())
   const [activeMat, setActiveMat] = useState('areia_fina')
@@ -246,6 +259,9 @@ function MainApp() {
               onChange={(e) => setDate(e.target.value)}
               style={{ background: 'rgba(255,255,255,.15)', border: '1px solid rgba(255,255,255,.35)', color: '#fff', borderRadius: 6, padding: '5px 8px', fontSize: 12, fontFamily: 'inherit' }}
             />
+            <button className="btn-sair" onClick={onVoltar}>
+              ← Início
+            </button>
             <button className="btn-sair" onClick={() => supabase.auth.signOut()}>
               Sair
             </button>
