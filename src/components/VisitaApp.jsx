@@ -1,6 +1,6 @@
 /**
  * Módulo Visita Surpresa — digitaliza o "Painel de acompanhamentos" das
- * filiais POA Norte / Sul. Três abas:
+ * filiais (POA Norte, POA Sul e outras, digitadas livremente). Três abas:
  *  - Nova visita: NF, motorista/BT, cliente, slump, água retida, anomalias (1–9 + Outros) e ações (A–C)
  *  - Registros: lista filtrável com editar/apagar e exportação CSV
  *  - Resumo: totais do mês e contagem por anomalia e por ação
@@ -28,7 +28,36 @@ export const ACOES = [
   ['B', 'Advertência jurídica'],
   ['C', 'Treinamento / reciclagem'],
 ]
-const FILIAIS = ['POA Norte', 'POA Sul']
+// Filial é texto livre. Estas aparecem sempre como sugestão; as outras vêm das visitas já lançadas.
+const FILIAIS_BASE = ['POA Norte', 'POA Sul']
+
+// Chave de comparação: ignora maiúsculas, acentos e espaços extras ("poa  NORTE" = "POA Norte")
+const chaveFilial = (s) =>
+  (s || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim()
+
+// Filiais conhecidas (base + as que já aparecem nas visitas), sem repetir, em ordem alfabética
+const filiaisDe = (lista) => {
+  const mapa = new Map()
+  for (const f of [...FILIAIS_BASE, ...lista.map((v) => v.filial)]) {
+    const k = chaveFilial(f)
+    if (k && !mapa.has(k)) mapa.set(k, f.trim().replace(/\s+/g, ' '))
+  }
+  return [...mapa.values()].sort((a, b) => a.localeCompare(b, 'pt-BR'))
+}
+
+// Ao salvar: se já existe uma filial "igual" (mesma chave), usa a grafia dela; senão limpa os espaços
+const normalizarFilial = (digitada, conhecidas) => {
+  const k = chaveFilial(digitada)
+  const igual = conhecidas.find((f) => chaveFilial(f) === k)
+  if (igual) return igual
+  const limpa = (digitada || '').trim().replace(/\s+/g, ' ')
+  return limpa.charAt(0).toUpperCase() + limpa.slice(1)
+}
 
 // ── Slump: lê a faixa da NF ("10 ± 2", "10+/-2" ou "8 a 12") ──
 const num = (s) => {
@@ -52,9 +81,9 @@ export function statusSlump(nf, obtido) {
 
 const filialSalva = () => {
   try {
-    return localStorage.getItem('smx:visita-filial') || 'POA Norte'
+    return localStorage.getItem('smx:visita-filial') || ''
   } catch {
-    return 'POA Norte'
+    return ''
   }
 }
 
@@ -92,6 +121,7 @@ export default function VisitaApp({ onVoltar, somenteLeitura }) {
   const [fFilial, setFFilial] = useState('')
   const [fMes, setFMes] = useState(toDay().slice(0, 7))
   const [fBusca, setFBusca] = useState('')
+  const filiais = useMemo(() => filiaisDe(lista), [lista])
 
   const carregar = useCallback(async () => {
     setCarregando(true)
@@ -141,12 +171,15 @@ export default function VisitaApp({ onVoltar, somenteLeitura }) {
   }
 
   const salvar = async () => {
+    if (!form.filial.trim()) return alert('Preencha a filial.')
     if (!form.nf.trim()) return alert('Preencha a nota fiscal.')
     if (!form.data) return alert('Preencha a data.')
+    const filial = normalizarFilial(form.filial, filiais)
     setSalvando(true)
     try {
       await visitaSalvar({
         ...form,
+        filial,
         nf: form.nf.trim(),
         motorista: form.motorista.trim(),
         cliente: form.cliente.trim(),
@@ -156,10 +189,10 @@ export default function VisitaApp({ onVoltar, somenteLeitura }) {
         agua_obra: num(form.agua_obra),
       })
       try {
-        localStorage.setItem('smx:visita-filial', form.filial)
+        localStorage.setItem('smx:visita-filial', filial)
       } catch {}
       aviso(form.id ? '✓ Visita atualizada' : '✓ Visita salva')
-      setForm({ ...vazio(), filial: form.filial })
+      setForm({ ...vazio(), filial })
       setAutoSlump(false)
       carregar()
     } catch (err) {
@@ -201,7 +234,7 @@ export default function VisitaApp({ onVoltar, somenteLeitura }) {
     const b = fBusca.trim().toLowerCase()
     return lista.filter(
       (v) =>
-        (!fFilial || v.filial === fFilial) &&
+        (!fFilial || chaveFilial(v.filial) === chaveFilial(fFilial)) &&
         (!fMes || (v.data || '').startsWith(fMes)) &&
         (!b || [v.nf, v.motorista, v.cliente].join(' ').toLowerCase().includes(b))
     )
@@ -273,11 +306,19 @@ export default function VisitaApp({ onVoltar, somenteLeitura }) {
             <div className="fgrid">
               <div>
                 <div className="flbl">Filial</div>
-                <select className="inp" value={form.filial} onChange={(e) => set('filial', e.target.value)}>
-                  {FILIAIS.map((f) => (
-                    <option key={f}>{f}</option>
+                <input
+                  className="inp"
+                  list="vs-filiais"
+                  value={form.filial}
+                  onChange={(e) => set('filial', e.target.value)}
+                  placeholder="Digite ou escolha"
+                  autoComplete="off"
+                />
+                <datalist id="vs-filiais">
+                  {filiais.map((f) => (
+                    <option key={f} value={f} />
                   ))}
-                </select>
+                </datalist>
               </div>
               <div>
                 <div className="flbl">Data</div>
@@ -400,7 +441,7 @@ export default function VisitaApp({ onVoltar, somenteLeitura }) {
               <div className="flbl">Filial</div>
               <select className="inp" value={fFilial} onChange={(e) => setFFilial(e.target.value)}>
                 <option value="">Todas</option>
-                {FILIAIS.map((f) => (
+                {filiais.map((f) => (
                   <option key={f}>{f}</option>
                 ))}
               </select>
@@ -513,7 +554,10 @@ export default function VisitaApp({ onVoltar, somenteLeitura }) {
 function Resumo({ lista, carregando }) {
   const [filial, setFilial] = useState('')
   const [mes, setMes] = useState(toDay().slice(0, 7))
-  const sel = lista.filter((v) => (!filial || v.filial === filial) && (!mes || (v.data || '').startsWith(mes)))
+  const filiais = useMemo(() => filiaisDe(lista), [lista])
+  const sel = lista.filter(
+    (v) => (!filial || chaveFilial(v.filial) === chaveFilial(filial)) && (!mes || (v.data || '').startsWith(mes))
+  )
   const tot = sel.length
   const com = sel.filter(temAnomalia).length
   const acima = sel.filter((v) => statusSlump(v.slump_nf, v.slump_obtido) === 'acima').length
@@ -544,7 +588,7 @@ function Resumo({ lista, carregando }) {
           <div className="flbl">Filial</div>
           <select className="inp" value={filial} onChange={(e) => setFilial(e.target.value)}>
             <option value="">Todas</option>
-            {FILIAIS.map((f) => (
+            {filiais.map((f) => (
               <option key={f}>{f}</option>
             ))}
           </select>
