@@ -5,10 +5,12 @@
  *  - Registros: lista filtrável com editar/apagar e exportação CSV
  *  - Resumo: totais do mês e contagem por anomalia e por ação
  * Os dados ficam na tabela `visitas` do Supabase (ver src/utils/dbVisitas.js).
+ * Cada login vê e edita só as visitas que ele lançou (criado_por); o admin vê todas.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { visitaApagar, visitaSalvar, visitasListar } from '../utils/dbVisitas.js'
+import { perfisListar } from '../utils/dbPerfis.js'
 import { toDay, fmtD } from '../utils/format.js'
 import Logo from './Logo.jsx'
 
@@ -109,7 +111,8 @@ const vazio = () => ({
 const temAnomalia = (v) => (v.anomalias || []).length > 0 || !!v.outros
 
 // somenteLeitura: login só pode ver (Registros e Resumo, sem Nova visita, Editar ou Apagar)
-export default function VisitaApp({ onVoltar, somenteLeitura }) {
+// admin: vê as visitas de todos (com "Lançado por"); os outros logins só veem as próprias (regra no RLS)
+export default function VisitaApp({ onVoltar, somenteLeitura, admin }) {
   const [view, setView] = useState(somenteLeitura ? 'registros' : 'nova')
   const [form, setForm] = useState(vazio)
   const [autoSlump, setAutoSlump] = useState(false)
@@ -121,7 +124,26 @@ export default function VisitaApp({ onVoltar, somenteLeitura }) {
   const [fFilial, setFFilial] = useState('')
   const [fMes, setFMes] = useState(toDay().slice(0, 7))
   const [fBusca, setFBusca] = useState('')
+  const [fUsuario, setFUsuario] = useState('')
   const filiais = useMemo(() => filiaisDe(lista), [lista])
+
+  // Só pro admin: mapa id do login → nome/e-mail, pra mostrar quem lançou cada visita
+  const [usuarios, setUsuarios] = useState({})
+  useEffect(() => {
+    if (!admin) return
+    perfisListar()
+      .then((ps) => setUsuarios(Object.fromEntries(ps.map((p) => [p.id, p.nome || p.email]))))
+      .catch((err) => console.error(err))
+  }, [admin])
+  const lancadoPor = (v) => usuarios[v.criado_por] || '—'
+  // Logins que aparecem nas visitas carregadas (pro filtro "Lançado por")
+  const autores = useMemo(
+    () =>
+      [...new Set(lista.map((v) => v.criado_por).filter(Boolean))]
+        .map((id) => [id, usuarios[id] || id.slice(0, 8)])
+        .sort((a, b) => a[1].localeCompare(b[1], 'pt-BR')),
+    [lista, usuarios]
+  )
 
   const carregar = useCallback(async () => {
     setCarregando(true)
@@ -236,9 +258,10 @@ export default function VisitaApp({ onVoltar, somenteLeitura }) {
       (v) =>
         (!fFilial || chaveFilial(v.filial) === chaveFilial(fFilial)) &&
         (!fMes || (v.data || '').startsWith(fMes)) &&
+        (!fUsuario || v.criado_por === fUsuario) &&
         (!b || [v.nf, v.motorista, v.cliente].join(' ').toLowerCase().includes(b))
     )
-  }, [lista, fFilial, fMes, fBusca])
+  }, [lista, fFilial, fMes, fBusca, fUsuario])
 
   const exportarCSV = () => {
     if (!filtradas.length) return alert('Nada para exportar com esses filtros.')
@@ -248,12 +271,14 @@ export default function VisitaApp({ onVoltar, somenteLeitura }) {
       'Água retida (L)', 'Água central (L)', 'Água obra (L)',
       ...ANOMALIAS.map(([c, t]) => `${c} ${t}`), 'Outros',
       ...ACOES.map(([c, t]) => `${c} ${t}`), 'Observações', 'Laboratorista',
+      ...(admin ? ['Lançado por'] : []),
     ]
     const linhas = filtradas.map((v) => [
       v.filial, fmtD(v.data), v.nf, v.motorista, v.cliente, v.slump_nf, v.slump_obtido,
       String(v.agua_retida ?? '').replace('.', ','), String(v.agua_central ?? '').replace('.', ','), String(v.agua_obra ?? '').replace('.', ','),
       ...ANOMALIAS.map(([c]) => ((v.anomalias || []).includes(c) ? 'X' : '')), v.outros,
       ...ACOES.map(([c]) => ((v.acoes || []).includes(c) ? 'X' : '')), v.obs, v.laboratorista,
+      ...(admin ? [lancadoPor(v)] : []),
     ])
     const csv = '﻿' + [cab, ...linhas].map((l) => l.map(q).join(';')).join('\r\n')
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
@@ -454,11 +479,28 @@ export default function VisitaApp({ onVoltar, somenteLeitura }) {
               <div className="flbl">Buscar</div>
               <input className="inp" value={fBusca} onChange={(e) => setFBusca(e.target.value)} placeholder="NF, motorista, cliente" />
             </div>
+            {admin && (
+              <div>
+                <div className="flbl">Lançado por</div>
+                <select className="inp" value={fUsuario} onChange={(e) => setFUsuario(e.target.value)}>
+                  <option value="">Todos</option>
+                  {autores.map(([id, nome]) => (
+                    <option key={id} value={id}>
+                      {nome}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div style={{ alignSelf: 'end' }}>
               <button className="btn-print" style={{ width: '100%' }} onClick={exportarCSV}>
                 ⬇ Exportar CSV
               </button>
             </div>
+          </div>
+
+          <div className="vs-dica" style={{ margin: '-2px 2px 10px' }}>
+            {admin ? 'Você está vendo as visitas de todos os logins.' : 'Aqui aparecem só as visitas lançadas pelo seu login.'}
           </div>
 
           {carregando ? (
@@ -501,6 +543,12 @@ export default function VisitaApp({ onVoltar, somenteLeitura }) {
                       <div>
                         <b>Laboratorista</b>
                         {v.laboratorista}
+                      </div>
+                    )}
+                    {admin && (
+                      <div>
+                        <b>Lançado por</b>
+                        {lancadoPor(v)}
                       </div>
                     )}
                     <div>
@@ -546,17 +594,22 @@ export default function VisitaApp({ onVoltar, somenteLeitura }) {
       )}
 
       {/* ── RESUMO ── */}
-      {view === 'resumo' && <Resumo lista={lista} carregando={carregando} />}
+      {view === 'resumo' && <Resumo lista={lista} carregando={carregando} autores={admin ? autores : null} />}
     </div>
   )
 }
 
-function Resumo({ lista, carregando }) {
+// autores: só vem preenchido pro admin ([id, nome] de quem lançou) → mostra o filtro "Lançado por"
+function Resumo({ lista, carregando, autores }) {
   const [filial, setFilial] = useState('')
   const [mes, setMes] = useState(toDay().slice(0, 7))
+  const [usuario, setUsuario] = useState('')
   const filiais = useMemo(() => filiaisDe(lista), [lista])
   const sel = lista.filter(
-    (v) => (!filial || chaveFilial(v.filial) === chaveFilial(filial)) && (!mes || (v.data || '').startsWith(mes))
+    (v) =>
+      (!filial || chaveFilial(v.filial) === chaveFilial(filial)) &&
+      (!mes || (v.data || '').startsWith(mes)) &&
+      (!usuario || v.criado_por === usuario)
   )
   const tot = sel.length
   const com = sel.filter(temAnomalia).length
@@ -597,6 +650,19 @@ function Resumo({ lista, carregando }) {
           <div className="flbl">Mês</div>
           <input className="inp" type="month" value={mes} onChange={(e) => setMes(e.target.value)} />
         </div>
+        {autores && (
+          <div>
+            <div className="flbl">Lançado por</div>
+            <select className="inp" value={usuario} onChange={(e) => setUsuario(e.target.value)}>
+              <option value="">Todos</option>
+              {autores.map(([id, nome]) => (
+                <option key={id} value={id}>
+                  {nome}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       {carregando ? (

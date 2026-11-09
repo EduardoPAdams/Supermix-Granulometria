@@ -39,6 +39,9 @@ entregue.
   editar, apagar e exportar CSV (abre direto no Excel/LibreOffice).
 - **Resumo**: totais do mês, taxa de anomalia, slumps acima da faixa,
   litros de água na obra e contagem por anomalia e por ação.
+- **Cada login vê só as visitas que ele lançou** (coluna `criado_por`).
+  O admin vê as de todos, com a informação **Lançado por** em cada
+  visita, um filtro por login em Registros e Resumo e a coluna no CSV.
 
 ## Controle de acessos
 
@@ -49,6 +52,9 @@ entregue.
 - Quem tem "Só ver" não vê as telas de lançamento nem os botões de
   editar/apagar (Granulometria: só Gráfico e Histórico; Visita Surpresa:
   só Registros e Resumo).
+- Na **Visita Surpresa**, cada login só vê, edita e apaga as próprias
+  visitas; o admin vê todas. A **Granulometria** é compartilhada: um
+  registro por dia pro laboratório inteiro.
 - A regra vale **no banco** (RLS do Supabase), não só na tela: sem
   permissão, o banco recusa leitura ou gravação.
 
@@ -75,7 +81,7 @@ por natureza). Quem protege os dados é o RLS. **Nunca** coloque a chave
 | Tabela | Uso |
 | --- | --- |
 | `registros` | Granulometria: um registro por dia (`data`, `dados` em JSON) |
-| `visitas` | Visita Surpresa: uma linha por visita |
+| `visitas` | Visita Surpresa: uma linha por visita (`criado_por` = login que lançou) |
 | `perfis` | Acessos: um por login (`modulos` = pode ver, `edicao` = pode editar) |
 
 Scripts SQL (rodar no *SQL Editor* do Supabase):

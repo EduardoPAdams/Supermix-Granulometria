@@ -71,7 +71,7 @@ export default function App() {
   const voltar = () => setModulo(null)
   if (modulo === 'granulometria' && pode('granulometria'))
     return <MainApp onVoltar={voltar} somenteLeitura={!edita('granulometria')} />
-  if (modulo === 'visita' && pode('visita')) return <VisitaApp onVoltar={voltar} somenteLeitura={!edita('visita')} />
+  if (modulo === 'visita' && pode('visita')) return <VisitaApp onVoltar={voltar} somenteLeitura={!edita('visita')} admin={acesso.admin} />
   if (modulo === 'admin' && acesso.admin) return <AdminPainel onVoltar={voltar} />
   return <Inicio email={session.user?.email} acesso={acesso} onEscolher={setModulo} />
 }

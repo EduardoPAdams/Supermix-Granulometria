@@ -8,6 +8,8 @@
 --      modulos = módulos que ele pode VER    (ex.: {granulometria, visita})
 --      edicao  = módulos que ele pode EDITAR (ex.: {granulometria})
 --    Quem está em `modulos` mas não em `edicao` fica "só leitura".
+--  • Visita Surpresa: cada login vê só as visitas que ele lançou; o admin vê todas.
+--    Granulometria continua compartilhada (um registro por dia pro laboratório).
 --  • Quem bloqueia de verdade é o RLS: sem o módulo liberado, o banco
 --    não deixa ler nem gravar, mesmo que alguém mexa no site.
 -- ═══════════════════════════════════════════════════════════════════
@@ -99,7 +101,14 @@ create policy "granulometria_inserir" on public.registros for insert to authenti
 create policy "granulometria_editar"  on public.registros for update to authenticated using (public.pode_editar('granulometria')) with check (public.pode_editar('granulometria'));
 create policy "granulometria_apagar"  on public.registros for delete to authenticated using (public.pode_editar('granulometria'));
 
-create policy "visita_ler"     on public.visitas for select to authenticated using (public.tem_modulo('visita'));
-create policy "visita_inserir" on public.visitas for insert to authenticated with check (public.pode_editar('visita'));
-create policy "visita_editar"  on public.visitas for update to authenticated using (public.pode_editar('visita')) with check (public.pode_editar('visita'));
-create policy "visita_apagar"  on public.visitas for delete to authenticated using (public.pode_editar('visita'));
+-- Visitas: cada login só vê, edita e apaga as visitas que ELE lançou (criado_por).
+-- O admin vê e mexe em todas.
+create policy "visita_ler" on public.visitas for select to authenticated
+  using (public.tem_modulo('visita') and (criado_por = auth.uid() or public.eh_admin()));
+create policy "visita_inserir" on public.visitas for insert to authenticated
+  with check (public.pode_editar('visita') and (criado_por = auth.uid() or public.eh_admin()));
+create policy "visita_editar" on public.visitas for update to authenticated
+  using (public.pode_editar('visita') and (criado_por = auth.uid() or public.eh_admin()))
+  with check (public.pode_editar('visita') and (criado_por = auth.uid() or public.eh_admin()));
+create policy "visita_apagar" on public.visitas for delete to authenticated
+  using (public.pode_editar('visita') and (criado_por = auth.uid() or public.eh_admin()));
