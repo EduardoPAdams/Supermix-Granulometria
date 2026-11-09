@@ -1,65 +1,119 @@
-# Supermix Granulometria
+# Laboratório — Supermix
 
-Aplicação web usada pela usina de concreto **Supermix** para o controle de
-qualidade dos agregados (areia, brita/pedrisco) que entram na produção do
-concreto. Substitui as planilhas/fichas de papel do laboratório por um
-sistema onde o técnico lança os dados dos ensaios do dia e o app calcula
-tudo automaticamente.
+Aplicação web do laboratório da **Supermix Concreto** que substitui as
+planilhas e fichas de papel do controle de qualidade. Fica atrás de um
+login e tem dois módulos, além de um painel de acessos para o administrador.
 
-## O que o app faz
+🔗 **No ar:** https://eduardopadams.github.io/Supermix-Granulometria/
 
-- **Ensaio de granulometria (peneiramento)** — para cada material (areia
-  fina, areia média, diabásio, granito, basalto), o técnico digita a massa
-  retida em cada peneira. O app calcula % retida, % retida acumulada, %
-  passante e o **Módulo de Finura (MF)**, indicando se o resultado está
-  dentro da faixa aceitável daquele material (aba **Entrada**).
-- **Ensaio de material pulverulento** — a partir da massa inicial (padrão)
-  e da massa final pesada após o ensaio, calcula o % de finos perdidos
-  (aba **Entrada → Pulverulento**).
-- **Umidade da areia** — converte a leitura do sensor de umidade em % de
-  umidade, usando as tabelas de referência da areia fina e média, com
-  suporte a várias leituras por dia (aba **Umidade**).
-- **Gráfico** — evolução do MF de um material nos últimos 30 dias, com a
-  faixa ideal destacada, média do período e contagem de dias fora da faixa.
-- **Histórico** — todos os dias já salvos, com opção de **imprimir** ou
-  **exportar em PDF** o relatório completo de qualquer dia.
+## Módulos
 
-Os dados ficam salvos no navegador (`localStorage`) — não há backend nem
-banco de dados. Cada dia é salvo com uma tecla "Salvar dados do dia".
+### Granulometria
 
-## Origem do projeto
+Ensaios diários dos agregados (areia, brita/pedrisco) que entram na produção.
 
-O app começou como um único arquivo HTML (React carregado via CDN + Babel
-standalone) e foi migrado para um projeto **Vite + React** com estrutura
-modular, mantendo exatamente o mesmo comportamento.
+- **Entrada**: para cada material (areia fina, areia média, diabásio,
+  granito, basalto) o técnico digita a massa retida em cada peneira. O app
+  calcula % retida, % retida acumulada, % passante e o **Módulo de Finura
+  (MF)**, indicando se está dentro da faixa do material. A sub-aba
+  **Pulv.** calcula o material pulverulento (% de finos).
+- **Umidade**: várias leituras por dia; a leitura do sensor vira % de
+  umidade pelas tabelas de calibração da sonda.
+- **Gráfico**: MF dos últimos 30 dias por material, com a faixa ideal,
+  média e contagem de dias fora da faixa.
+- **Histórico**: todos os dias salvos, com **imprimir** e **exportar PDF**.
+
+### Visita Surpresa
+
+Versão digital da ficha de Visita Surpresa: cada visita audita uma carga
+entregue.
+
+- **Nova visita**: filial, data, NF, motorista/BT, cliente, laboratorista,
+  slump da NF e obtido, água (retida, central e obra), anomalias (1 a 9 +
+  Outros), ações (A, B, C) e observações. Se o slump obtido passa da faixa
+  da NF, a anomalia 1 é marcada sozinha.
+- **Filial** é texto livre com sugestões das filiais já lançadas. Ao
+  salvar, o nome é padronizado (maiúsculas, acentos e espaços), pra
+  "poa norte" e "POA Norte" não virarem duas filiais.
+- **Registros**: filtro por filial, mês e busca (NF, motorista, cliente),
+  editar, apagar e exportar CSV (abre direto no Excel/LibreOffice).
+- **Resumo**: totais do mês, taxa de anomalia, slumps acima da faixa,
+  litros de água na obra e contagem por anomalia e por ação.
+
+## Controle de acessos
+
+- O **administrador** (`lab.adm@supermix.com`) vê tudo e tem o cartão
+  **Gerenciar acessos** na tela inicial.
+- No painel, cada login tem, por módulo, um de três níveis:
+  **Sem acesso**, **Só ver** ou **Ver e editar**.
+- Quem tem "Só ver" não vê as telas de lançamento nem os botões de
+  editar/apagar (Granulometria: só Gráfico e Histórico; Visita Surpresa:
+  só Registros e Resumo).
+- A regra vale **no banco** (RLS do Supabase), não só na tela: sem
+  permissão, o banco recusa leitura ou gravação.
+
+**Login novo:** criar no Supabase em *Authentication → Users → Add user*
+(marcar "Auto Confirm User"). Ele aparece no painel sem acesso a nada até o
+admin liberar.
+
+## Stack
+
+| Camada | Tecnologia |
+| --- | --- |
+| Front-end | React 18 + Vite, sem biblioteca de UI |
+| Gráficos | SVG puro |
+| Banco e login | Supabase (Postgres + Auth + RLS), região São Paulo |
+| PDF | `html2canvas` + `jspdf`, carregados só quando gera o PDF |
+| Deploy | GitHub Actions → GitHub Pages a cada push na `main` |
+
+A chave do Supabase em `src/lib/supabase.js` é a *publishable* (pública
+por natureza). Quem protege os dados é o RLS. **Nunca** coloque a chave
+`secret`/`service_role` no front.
+
+## Banco de dados
+
+| Tabela | Uso |
+| --- | --- |
+| `registros` | Granulometria: um registro por dia (`data`, `dados` em JSON) |
+| `visitas` | Visita Surpresa: uma linha por visita |
+| `perfis` | Acessos: um por login (`modulos` = pode ver, `edicao` = pode editar) |
+
+Scripts SQL (rodar no *SQL Editor* do Supabase):
+
+- `supabase-visitas.sql`: cria a tabela `visitas`.
+- `supabase-acessos.sql`: cria `perfis`, as funções `eh_admin()`,
+  `tem_modulo()` e `pode_editar()`, o gatilho que cria o perfil de cada
+  login novo e as regras de RLS de `registros` e `visitas`. Pode rodar de
+  novo sem problema.
 
 ## Estrutura
 
 ```
 src/
-  App.jsx                    # componente principal: abas, estado do dia, salvar/imprimir/PDF
-  main.jsx                   # ponto de entrada (monta o App no index.html)
-  index.css                  # estilos
-  data/materials.js          # materiais cadastrados, peneiras, faixas de MF, tabelas de umidade
+  App.jsx                  # login, permissões, tela Início e módulo Granulometria
+  main.jsx                 # ponto de entrada
+  index.css                # todos os estilos (cinza + vermelho Supermix)
+  lib/supabase.js          # cliente do Supabase
+  data/
+    materials.js           # materiais, peneiras, faixas de MF, tabelas de umidade
+    modulos.js             # lista de módulos e e-mail do admin
   utils/
-    calc.js                  # cálculo de granulometria, Módulo de Finura e pulverulento
-    format.js                # formatação de datas e números
-    storage.js                # helpers de localStorage
+    calc.js                # granulometria, MF e pulverulento
+    db.js                  # tabela registros
+    dbVisitas.js           # tabela visitas
+    dbPerfis.js            # tabela perfis (acessos)
+    format.js              # datas e números
+    storage.js             # leitura do localStorage antigo (migração)
   components/
-    Logo.jsx                 # logo da Supermix no cabeçalho
-    SieveTable.jsx            # tabela de peneiras (aba Entrada)
-    PulvTab.jsx                # aba de material pulverulento
-    UmidadeView.jsx            # aba de umidade
-    GraficoView.jsx            # aba de gráfico (MF ao longo do tempo)
-    DayReport.jsx               # relatório completo de um dia (impressão/PDF)
-    MatPrintCard.jsx            # card de um material dentro do relatório
-    PulvPrintCard.jsx           # card de pulverulento dentro do relatório
-  assets/truck.png             # imagem do caminhão usada no relatório
+    Login.jsx              # tela de login
+    Inicio.jsx             # escolha do módulo (só os liberados)
+    AdminPainel.jsx        # painel de acessos do admin
+    VisitaApp.jsx          # módulo Visita Surpresa inteiro
+    MigrarBanner.jsx       # sobe dados antigos do navegador pra nuvem
+    SieveTable.jsx, PulvTab.jsx, UmidadeView.jsx, GraficoView.jsx
+    DayReport.jsx, MatPrintCard.jsx, PulvPrintCard.jsx, Logo.jsx
+  assets/                  # favicon e caminhão
 ```
-
-Cada arquivo tem um comentário no topo explicando seu papel — comece por
-`App.jsx` para entender o fluxo geral, depois `utils/calc.js` para a lógica
-dos cálculos.
 
 ## Rodando localmente
 
@@ -68,37 +122,27 @@ npm install
 npm run dev
 ```
 
-Abre em `http://localhost:5173`.
+Abre em `http://localhost:5173`. Não abra o `index.html` direto pelo
+`file://`, a página fica em branco.
 
-## Build de produção
+## Deploy
 
-```bash
-npm run build
-npm run preview   # para testar o build localmente
-```
+Todo push na `main` dispara o workflow `.github/workflows/deploy.yml`
+(`npm ci` + `npm run build`) e publica no GitHub Pages
+(*Settings → Pages → Source: GitHub Actions*).
 
-## Deploy no GitHub Pages
-
-1. Suba este projeto para um repositório no GitHub.
-2. Em **Settings → Pages**, em "Build and deployment", selecione
-   **Source: GitHub Actions**.
-3. Ajuste o `base` em `vite.config.js` para bater com o nome exato do
-   seu repositório (case-sensitive):
-
-   ```js
-   base: '/nome-do-seu-repositorio/'
-   ```
-
-4. Faça `git push` para a branch `main` — o workflow em
-   `.github/workflows/deploy.yml` builda e publica automaticamente.
-
-O app fica em `https://<seu-usuario>.github.io/<nome-do-repositorio>/`.
+- O `base` do `vite.config.js` no build é `/Supermix-Granulometria/`, com
+  as maiúsculas iguais ao nome do repositório.
+- Mexeu no `package.json`? Suba o `package-lock.json` junto (o workflow
+  usa `npm ci`).
+- Depois do deploy, teste numa aba anônima (cache do navegador).
 
 ## Notas
 
-- Os dados ficam salvos apenas no `localStorage` do navegador que os
-  digitou — não há sincronização entre computadores nem backend.
-- `html2canvas` e `jspdf` são carregados sob demanda (`import()` dinâmico)
-  só quando o usuário gera um PDF, para manter o bundle inicial leve.
 - Para adicionar ou ajustar um material (peneiras, faixa de MF, massa
   inicial do pulverulento), edite `src/data/materials.js`.
+- Para criar um módulo novo: adicionar em `src/data/modulos.js` e criar as
+  policies da tabela dele usando `tem_modulo('<id>')` e
+  `pode_editar('<id>')`.
+- Até outubro de 2026 os dados ficavam só no `localStorage`; o
+  `MigrarBanner` sobe esses dias pra nuvem sem sobrescrever nada.
