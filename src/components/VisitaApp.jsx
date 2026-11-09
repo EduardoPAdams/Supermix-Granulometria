@@ -79,8 +79,9 @@ const vazio = () => ({
 
 const temAnomalia = (v) => (v.anomalias || []).length > 0 || !!v.outros
 
-export default function VisitaApp({ onVoltar }) {
-  const [view, setView] = useState('nova')
+// somenteLeitura: login só pode ver (Registros e Resumo, sem Nova visita, Editar ou Apagar)
+export default function VisitaApp({ onVoltar, somenteLeitura }) {
+  const [view, setView] = useState(somenteLeitura ? 'registros' : 'nova')
   const [form, setForm] = useState(vazio)
   const [autoSlump, setAutoSlump] = useState(false)
   const [salvando, setSalvando] = useState(false)
@@ -245,7 +246,9 @@ export default function VisitaApp({ onVoltar }) {
             </button>
           </div>
         </div>
-        <div className="vs-titulo">Visita Surpresa</div>
+        <div className="vs-titulo">
+          Visita Surpresa {somenteLeitura && <span className="leitura-tag">Só leitura</span>}
+        </div>
       </div>
 
       <div className="nav">
@@ -253,15 +256,17 @@ export default function VisitaApp({ onVoltar }) {
           ['nova', form.id ? 'Editando' : 'Nova visita'],
           ['registros', `Registros${lista.length ? ` (${lista.length})` : ''}`],
           ['resumo', 'Resumo'],
-        ].map(([id, lbl]) => (
-          <button key={id} className={`nav-btn${view === id ? ' on' : ''}`} onClick={() => setView(id)}>
-            {lbl}
-          </button>
-        ))}
+        ]
+          .filter(([id]) => !somenteLeitura || id !== 'nova')
+          .map(([id, lbl]) => (
+            <button key={id} className={`nav-btn${view === id ? ' on' : ''}`} onClick={() => setView(id)}>
+              {lbl}
+            </button>
+          ))}
       </div>
 
       {/* ── NOVA VISITA ── */}
-      {view === 'nova' && (
+      {view === 'nova' && !somenteLeitura && (
         <div className="pad">
           <div className="card">
             <div className="sec-ttl">Carga</div>
@@ -429,7 +434,7 @@ export default function VisitaApp({ onVoltar }) {
             <div className="vs-vazio">
               {lista.length ? 'Nenhuma visita com esses filtros.' : 'Nenhuma visita registrada ainda.'}
               <br />
-              {lista.length ? 'Troque a filial, o mês ou a busca.' : 'Preencha e salve na aba Nova visita.'}
+              {lista.length ? 'Troque a filial, o mês ou a busca.' : somenteLeitura ? '' : 'Preencha e salve na aba Nova visita.'}
             </div>
           ) : (
             filtradas.map((v) => {
@@ -482,14 +487,16 @@ export default function VisitaApp({ onVoltar }) {
                     ))}
                   </div>
                   {v.obs && <div className="vs-obs">{v.obs}</div>}
-                  <div className="vs-rec-acoes">
-                    <button className="btn-print" onClick={() => editar(v)}>
-                      Editar
-                    </button>
-                    <button className="btn-print" onClick={() => apagar(v)}>
-                      Apagar
-                    </button>
-                  </div>
+                  {!somenteLeitura && (
+                    <div className="vs-rec-acoes">
+                      <button className="btn-print" onClick={() => editar(v)}>
+                        Editar
+                      </button>
+                      <button className="btn-print" onClick={() => apagar(v)}>
+                        Apagar
+                      </button>
+                    </div>
+                  )}
                 </div>
               )
             })

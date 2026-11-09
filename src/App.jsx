@@ -1,6 +1,7 @@
 /**
  * Componente principal. App() decide entre login, a tela inicial (escolha do
- * módulo) e o módulo escolhido: Granulometria (MainApp, abaixo) ou Visita Surpresa.
+ * módulo) e o módulo escolhido: Granulometria (MainApp, abaixo), Visita Surpresa
+ * ou o painel de acessos (só admin). As permissões vêm da tabela `perfis`.
  * MainApp: controla a data selecionada, as 4 abas do app
  * (Entrada, Umidade, Gráfico, Histórico), o carregamento/gravação dos
  * registros na nuvem (Supabase) e a geração de impressão/PDF de um dia.
@@ -14,6 +15,8 @@ import { supabase } from './lib/supabase.js'
 import Login from './components/Login.jsx'
 import Inicio from './components/Inicio.jsx'
 import VisitaApp from './components/VisitaApp.jsx'
+import AdminPainel from './components/AdminPainel.jsx'
+import { carregarAcesso } from './utils/dbPerfis.js'
 import MigrarBanner from './components/MigrarBanner.jsx'
 import Logo from './components/Logo.jsx'
 import SieveTable from './components/SieveTable.jsx'
@@ -40,15 +43,42 @@ export default function App() {
     if (!session) setModulo(null)
   }, [session])
 
+  // Permissões do login atual: null = carregando; { admin, modulos, nome, erro? }
+  const [acesso, setAcesso] = useState(null)
+  const userId = session?.user?.id
+
+  useEffect(() => {
+    setAcesso(null)
+    if (!userId) return
+    let cancel = false
+    carregarAcesso(userId)
+      .then((a) => !cancel && setAcesso(a))
+      .catch((err) => {
+        console.error(err)
+        if (!cancel) setAcesso({ admin: false, modulos: [], edicao: [], nome: '', erro: true })
+      })
+    return () => {
+      cancel = true
+    }
+  }, [userId])
+
   if (session === undefined) return <div className="loading-msg">Carregando...</div>
   if (!session) return <Login />
-  if (modulo === 'granulometria') return <MainApp onVoltar={() => setModulo(null)} />
-  if (modulo === 'visita') return <VisitaApp onVoltar={() => setModulo(null)} />
-  return <Inicio email={session.user?.email} onEscolher={setModulo} />
+  if (!acesso) return <div className="loading-msg">Carregando...</div>
+
+  const pode = (m) => acesso.admin || acesso.modulos.includes(m)
+  const edita = (m) => acesso.admin || (acesso.modulos.includes(m) && acesso.edicao.includes(m))
+  const voltar = () => setModulo(null)
+  if (modulo === 'granulometria' && pode('granulometria'))
+    return <MainApp onVoltar={voltar} somenteLeitura={!edita('granulometria')} />
+  if (modulo === 'visita' && pode('visita')) return <VisitaApp onVoltar={voltar} somenteLeitura={!edita('visita')} />
+  if (modulo === 'admin' && acesso.admin) return <AdminPainel onVoltar={voltar} />
+  return <Inicio email={session.user?.email} acesso={acesso} onEscolher={setModulo} />
 }
 
-function MainApp({ onVoltar }) {
-  const [view, setView] = useState('entrada')
+// somenteLeitura: login só pode ver (abas Gráfico e Histórico, sem apagar nem salvar)
+function MainApp({ onVoltar, somenteLeitura }) {
+  const [view, setView] = useState(somenteLeitura ? 'historico' : 'entrada')
   const [date, setDate] = useState(toDay())
   const [activeMat, setActiveMat] = useState('areia_fina')
   const [dayData, setDayData] = useState(() => emptyDay())
@@ -253,12 +283,14 @@ function MainApp({ onVoltar }) {
           <div className="hdr-top">
             <Logo />
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            {!somenteLeitura && (
             <input
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
               style={{ background: 'rgba(255,255,255,.15)', border: '1px solid rgba(255,255,255,.35)', color: '#fff', borderRadius: 6, padding: '5px 8px', fontSize: 12, fontFamily: 'inherit' }}
             />
+            )}
             <button className="btn-sair" onClick={onVoltar}>
               ← Início
             </button>
@@ -267,6 +299,11 @@ function MainApp({ onVoltar }) {
             </button>
             </div>
           </div>
+          {somenteLeitura ? (
+            <div className="vs-titulo">
+              Granulometria <span className="leitura-tag">Só leitura</span>
+            </div>
+          ) : (
           <div className="hdr-fields">
             <div>
               <div className="hdr-lbl">Responsável</div>
@@ -277,6 +314,7 @@ function MainApp({ onVoltar }) {
               <input className="hdr-inp" value={dayData.filial || ''} onChange={(e) => setField('filial', e.target.value)} placeholder="Filial" />
             </div>
           </div>
+          )}
         </div>
 
         {/* Nav principal */}
@@ -286,14 +324,16 @@ function MainApp({ onVoltar }) {
             ['umidade', 'Umidade'],
             ['grafico', 'Gráfico'],
             ['historico', 'Histórico'],
-          ].map(([id, lbl]) => (
-            <button key={id} className={`nav-btn${view === id ? ' on' : ''}`} onClick={() => setView(id)}>
-              {lbl}
-            </button>
-          ))}
+          ]
+            .filter(([id]) => !somenteLeitura || id === 'grafico' || id === 'historico')
+            .map(([id, lbl]) => (
+              <button key={id} className={`nav-btn${view === id ? ' on' : ''}`} onClick={() => setView(id)}>
+                {lbl}
+              </button>
+            ))}
         </div>
 
-        {histLoaded && (
+        {histLoaded && !somenteLeitura && (
           <div className="pad" style={{ paddingBottom: 0 }}>
             <MigrarBanner cloudDates={hist} onDone={loadHist} />
           </div>
@@ -369,8 +409,12 @@ function MainApp({ onVoltar }) {
             ) : histRecords.length === 0 ? (
               <div style={{ textAlign: 'center', color: '#aaa', padding: '40px 0', fontSize: 13, lineHeight: 2 }}>
                 Nenhum registro salvo ainda.
-                <br />
-                Preencha os dados e salve na aba Entrada.
+                {!somenteLeitura && (
+                  <>
+                    <br />
+                    Preencha os dados e salve na aba Entrada.
+                  </>
+                )}
               </div>
             ) : (
               histRecords.map((rec) => (
@@ -401,9 +445,11 @@ function MainApp({ onVoltar }) {
                       >
                         {pdfTarget?.date === rec.date ? '⏳ PDF...' : '⬇ PDF'}
                       </button>
-                      <button className="btn-del" onClick={() => delH(rec.date)}>
-                        Apagar
-                      </button>
+                      {!somenteLeitura && (
+                        <button className="btn-del" onClick={() => delH(rec.date)}>
+                          Apagar
+                        </button>
+                      )}
                     </div>
                   </div>
                   <DayReport data={rec.data} date={rec.date} />
