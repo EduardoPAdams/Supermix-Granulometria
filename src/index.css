@@ -257,3 +257,8 @@ button:disabled{opacity:.6;cursor:default}
 .adm-seg-btn.ver.on{background:#e6f1fb;color:#0c447c}
 .adm-seg-btn.editar.on{background:#c1272d;color:#fff}
 .leitura-tag{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:2px 7px;border-radius:4px;background:#e6f1fb;color:#0c447c;margin-left:8px;vertical-align:middle}
+.exemplo-aviso{background:#e6f1fb;border:1px solid #b5d4f4;color:#0c447c;border-radius:8px;padding:8px 12px;font-size:12px;line-height:1.5;margin-bottom:10px}
+.exemplo-aviso strong{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;background:#0c447c;color:#fff;border-radius:4px;padding:1px 7px;margin-right:6px}
+/* Campos travados (modo "Só ver"): legíveis, mas com cara de não editável */
+.inp:disabled{background:#f3f3f3;color:#444;-webkit-text-fill-color:#444;opacity:1;cursor:not-allowed}
+.hdr-inp:disabled{opacity:1;-webkit-text-fill-color:#fff;cursor:not-allowed;border-style:dashed}

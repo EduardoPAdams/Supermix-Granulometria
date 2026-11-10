@@ -3,11 +3,12 @@
  * com cálculo ao vivo de % retida / % acumulada / % passante e do Módulo de
  * Finura (ver utils/calc.js). `mc` = configuração do material (peneiras,
  * faixa de MF aceitável); `md` (em App.jsx) = os dados digitados daquele dia.
+ * `readOnly` = só mostra (campos travados, não avisa o pai de mudança nenhuma).
  */
 import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import { calcMat } from '../utils/calc.js'
 
-const SieveTable = memo(function SieveTable({ mc, initMasses, onUpdate }) {
+const SieveTable = memo(function SieveTable({ mc, initMasses, onUpdate, readOnly = false }) {
   const rowKeys = useMemo(() => [...mc.sieves, 'fundo'], [mc.id])
   const [massValues, setMassValues] = useState(() => {
     const initial = {}
@@ -21,7 +22,7 @@ const SieveTable = memo(function SieveTable({ mc, initMasses, onUpdate }) {
 
   // Notifica o componente pai a cada alteração, para ele salvar no estado do dia
   useEffect(() => {
-    onUpdate(massValues)
+    if (!readOnly) onUpdate(massValues)
   }, [massValues])
 
   const handleChange = (key, raw) => {
@@ -74,6 +75,7 @@ const SieveTable = memo(function SieveTable({ mc, initMasses, onUpdate }) {
                     onFocus={(e) => e.target.select()}
                     placeholder="0"
                     style={{ width: '100%' }}
+                    disabled={readOnly}
                   />
                 </td>
                 <td className="r">{calc.tot > 0 ? row.pct.toFixed(2) : '—'}</td>

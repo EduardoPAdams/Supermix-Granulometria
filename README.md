@@ -23,6 +23,11 @@ Ensaios diários dos agregados (areia, brita/pedrisco) que entram na produção.
   média e contagem de dias fora da faixa.
 - **Histórico**: todos os dias salvos, com **imprimir** e **exportar PDF**.
 
+Quem tem acesso **Só ver** enxerga as quatro abas: Gráfico e Histórico com
+os dados reais, e Entrada e Umidade com um **dia de exemplo** (valores
+fictícios de `src/data/exemplo.js`), com todos os campos travados e sem
+botão de salvar. Serve pra pessoa ter noção de como é o lançamento.
+
 ### Visita Surpresa
 
 Versão digital da ficha de Visita Surpresa: cada visita audita uma carga
@@ -49,9 +54,10 @@ entregue.
   **Gerenciar acessos** na tela inicial.
 - No painel, cada login tem, por módulo, um de três níveis:
   **Sem acesso**, **Só ver** ou **Ver e editar**.
-- Quem tem "Só ver" não vê as telas de lançamento nem os botões de
-  editar/apagar (Granulometria: só Gráfico e Histórico; Visita Surpresa:
-  só Registros e Resumo).
+- Quem tem "Só ver" não lança nem altera nada e não vê os botões de
+  editar/apagar. Na Granulometria, Entrada e Umidade aparecem só como
+  exemplo fictício, travado; os dados reais ficam em Gráfico e Histórico.
+  Na Visita Surpresa aparecem só Registros e Resumo.
 - Na **Visita Surpresa**, cada login só vê, edita e apaga as próprias
   visitas; o admin vê todas. A **Granulometria** é compartilhada: um
   registro por dia pro laboratório inteiro.
@@ -102,6 +108,7 @@ src/
   lib/supabase.js          # cliente do Supabase
   data/
     materials.js           # materiais, peneiras, faixas de MF, tabelas de umidade
+    exemplo.js             # dia de exemplo (fictício) do modo "Só ver"
     modulos.js             # lista de módulos e e-mail do admin
   utils/
     calc.js                # granulometria, MF e pulverulento
@@ -146,7 +153,9 @@ Todo push na `main` dispara o workflow `.github/workflows/deploy.yml`
 ## Notas
 
 - Para adicionar ou ajustar um material (peneiras, faixa de MF, massa
-  inicial do pulverulento), edite `src/data/materials.js`.
+  inicial do pulverulento), edite `src/data/materials.js`. Se mudar
+  peneiras ou faixa de MF, ajuste também o exemplo em
+  `src/data/exemplo.js`.
 - Para criar um módulo novo: adicionar em `src/data/modulos.js` e criar as
   policies da tabela dele usando `tem_modulo('<id>')` e
   `pode_editar('<id>')`.

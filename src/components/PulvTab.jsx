@@ -2,11 +2,12 @@
  * Aba "Pulverulento": para cada material, mostra a massa inicial padrão (MI)
  * e um campo para a massa final pesada (MF) após o ensaio, calculando o
  * % de material fino perdido (pulvRes, em utils/calc.js).
+ * `readOnly` = só mostra, com os campos travados.
  */
 import { MATS } from '../data/materials.js'
 import { emptyMat, pulvRes } from '../utils/calc.js'
 
-export default function PulvTab({ dayData, setField }) {
+export default function PulvTab({ dayData, setField, readOnly = false }) {
   return (
     <div className="card alt">
       <div className="sec-ttl">Pulverulento</div>
@@ -43,6 +44,7 @@ export default function PulvTab({ dayData, setField }) {
                       onFocus={(e) => e.target.select()}
                       placeholder="0"
                       style={{ width: '100%' }}
+                      disabled={readOnly}
                     />
                   </td>
                   <td className="r">{result !== null ? result.toFixed(2) + '%' : '—'}</td>

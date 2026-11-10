@@ -3,16 +3,19 @@
  * dia (uma ou mais "leituras" numeradas, cada uma podendo ter vários horários/
  * materiais) e converte cada leitura em % de umidade via as tabelas de
  * referência em data/materials.js.
+ * `readOnly` = modo "Só ver": mostra o formulário preenchido com uma leitura de
+ * exemplo e tudo travado (sem adicionar, apagar nem salvar).
  */
 import { useMemo, useState } from 'react'
 import { UM_MATS, getHumidity } from '../data/materials.js'
 import { fmtD, nowHHMM } from '../utils/format.js'
+import { EXEMPLO_LEITURA } from '../data/exemplo.js'
 
-export default function UmidadeView({ entries, onAdd, onRemove, saved, onSave, date }) {
-  const [matId, setMatId] = useState('areia_media')
-  const [leitura, setLeitura] = useState('')
-  const [hora, setHora] = useState(nowHHMM)
-  const [numero, setNumero] = useState(1)
+export default function UmidadeView({ entries, onAdd, onRemove, saved, onSave, date, readOnly = false }) {
+  const [matId, setMatId] = useState(readOnly ? EXEMPLO_LEITURA.matId : 'areia_media')
+  const [leitura, setLeitura] = useState(readOnly ? EXEMPLO_LEITURA.leitura : '')
+  const [hora, setHora] = useState(readOnly ? EXEMPLO_LEITURA.hora : nowHHMM)
+  const [numero, setNumero] = useState(readOnly ? EXEMPLO_LEITURA.numero : 1)
   const umidade = getHumidity(matId, leitura)
   const fora = leitura !== '' && umidade === null
 
@@ -32,7 +35,7 @@ export default function UmidadeView({ entries, onAdd, onRemove, saved, onSave, d
   const numeros = Object.keys(grupos).map(Number).sort((a, b) => a - b)
 
   const handleAdd = () => {
-    if (!leitura || fora) return
+    if (readOnly || !leitura || fora) return
     onAdd({ id: Date.now(), matId, leitura, hora, numero })
     setLeitura('')
     setHora(nowHHMM())
@@ -43,13 +46,19 @@ export default function UmidadeView({ entries, onAdd, onRemove, saved, onSave, d
 
   return (
     <div className="pad">
+      {readOnly && (
+        <div className="exemplo-aviso">
+          <strong>Exemplo</strong> Valores fictícios, só pra mostrar como as leituras de umidade são lançadas. Seu acesso é só de leitura: nada aqui pode
+          ser editado ou salvo.
+        </div>
+      )}
       {/* Formulário nova leitura */}
       <div className="card">
         <div className="sec-ttl">Nova leitura</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: 10, marginBottom: 10, alignItems: 'end' }}>
           <div>
             <div className="flbl">Nº Leitura</div>
-            <select className="inp" value={numero} onChange={(e) => setNumero(parseInt(e.target.value))} style={{ cursor: 'pointer', minWidth: 90 }}>
+            <select className="inp" value={numero} onChange={(e) => setNumero(parseInt(e.target.value))} style={{ cursor: 'pointer', minWidth: 90 }} disabled={readOnly}>
               {[1, 2, 3, 4, 5, 6].map((n) => (
                 <option key={n} value={n}>
                   Leitura {n}
@@ -59,7 +68,7 @@ export default function UmidadeView({ entries, onAdd, onRemove, saved, onSave, d
           </div>
           <div>
             <div className="flbl">Material</div>
-            <select className="inp" value={matId} onChange={(e) => setMatId(e.target.value)} style={{ cursor: 'pointer' }}>
+            <select className="inp" value={matId} onChange={(e) => setMatId(e.target.value)} style={{ cursor: 'pointer' }} disabled={readOnly}>
               {UM_MATS.map((m) => (
                 <option key={m.id} value={m.id}>
                   {m.label}
@@ -69,7 +78,7 @@ export default function UmidadeView({ entries, onAdd, onRemove, saved, onSave, d
           </div>
           <div>
             <div className="flbl">Hora</div>
-            <input type="time" className="inp" value={hora} onChange={(e) => setHora(e.target.value)} style={{ minWidth: 100 }} />
+            <input type="time" className="inp" value={hora} onChange={(e) => setHora(e.target.value)} style={{ minWidth: 100 }} disabled={readOnly} />
           </div>
         </div>
         <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
@@ -84,6 +93,7 @@ export default function UmidadeView({ entries, onAdd, onRemove, saved, onSave, d
               onFocus={(e) => e.target.select()}
               onKeyDown={handleKey}
               placeholder="000"
+              disabled={readOnly}
             />
           </div>
           <div style={{ flex: 1 }}>
@@ -98,7 +108,8 @@ export default function UmidadeView({ entries, onAdd, onRemove, saved, onSave, d
           <button
             className="btn-save"
             onClick={handleAdd}
-            style={{ padding: '7px 18px', fontSize: 13, whiteSpace: 'nowrap', opacity: !leitura || fora ? 0.5 : 1 }}
+            disabled={readOnly}
+            style={{ padding: '7px 18px', fontSize: 13, whiteSpace: 'nowrap', opacity: readOnly || !leitura || fora ? 0.5 : 1 }}
           >
             + Adicionar
           </button>
@@ -122,7 +133,7 @@ export default function UmidadeView({ entries, onAdd, onRemove, saved, onSave, d
                       <th style={{ padding: '4px 6px', fontSize: 10, background: '#f5f5f5', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Material</th>
                       <th style={{ padding: '4px 6px', fontSize: 10, background: '#f5f5f5', textAlign: 'right', borderBottom: '1px solid #ddd' }}>Sensor</th>
                       <th style={{ padding: '4px 6px', fontSize: 10, background: '#f5f5f5', textAlign: 'right', borderBottom: '1px solid #ddd' }}>Um.%</th>
-                      <th style={{ width: 26, background: '#f5f5f5', borderBottom: '1px solid #ddd' }}></th>
+                      {!readOnly && <th style={{ width: 26, background: '#f5f5f5', borderBottom: '1px solid #ddd' }}></th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -146,14 +157,16 @@ export default function UmidadeView({ entries, onAdd, onRemove, saved, onSave, d
                           >
                             {pctUmidade !== null ? pctUmidade.toFixed(1) + '%' : '⚠'}
                           </td>
-                          <td style={{ textAlign: 'center', padding: '2px 2px', borderBottom: '1px solid #f0f0f0' }}>
-                            <button
-                              onClick={() => onRemove(entry.id)}
-                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#c1272d', fontSize: 16, lineHeight: 1, padding: '0 3px', fontFamily: 'inherit' }}
-                            >
-                              ×
-                            </button>
-                          </td>
+                          {!readOnly && (
+                            <td style={{ textAlign: 'center', padding: '2px 2px', borderBottom: '1px solid #f0f0f0' }}>
+                              <button
+                                onClick={() => onRemove(entry.id)}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#c1272d', fontSize: 16, lineHeight: 1, padding: '0 3px', fontFamily: 'inherit' }}
+                              >
+                                ×
+                              </button>
+                            </td>
+                          )}
                         </tr>
                       )
                     })}
@@ -165,12 +178,14 @@ export default function UmidadeView({ entries, onAdd, onRemove, saved, onSave, d
         </div>
       )}
 
-      <div className="save-bar">
-        {saved && <span className="saved">✓ Salvo — {fmtD(date)}</span>}
-        <button className="btn-save" onClick={onSave}>
-          Salvar dados do dia
-        </button>
-      </div>
+      {!readOnly && (
+        <div className="save-bar">
+          {saved && <span className="saved">✓ Salvo — {fmtD(date)}</span>}
+          <button className="btn-save" onClick={onSave}>
+            Salvar dados do dia
+          </button>
+        </div>
+      )}
     </div>
   )
 }

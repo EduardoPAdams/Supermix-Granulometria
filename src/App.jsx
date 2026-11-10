@@ -5,9 +5,12 @@
  * MainApp: controla a data selecionada, as 4 abas do app
  * (Entrada, Umidade, Gráfico, Histórico), o carregamento/gravação dos
  * registros na nuvem (Supabase) e a geração de impressão/PDF de um dia.
+ * Login "Só ver": Gráfico e Histórico mostram os dados reais; Entrada e Umidade
+ * mostram um dia de exemplo fictício (data/exemplo.js) com tudo travado.
  */
 import { useCallback, useEffect, useState } from 'react'
 import { MATS, MAT_TABS } from './data/materials.js'
+import { EXEMPLO_DIA } from './data/exemplo.js'
 import { emptyDay, emptyMat, calcMat, migrateUmidade } from './utils/calc.js'
 import { fmtD, toDay, pf } from './utils/format.js'
 import { dbDel, dbGet, dbGetRecords, dbListDates, dbSet } from './utils/db.js'
@@ -76,12 +79,13 @@ export default function App() {
   return <Inicio email={session.user?.email} acesso={acesso} onEscolher={setModulo} />
 }
 
-// somenteLeitura: login só pode ver (abas Gráfico e Histórico, sem apagar nem salvar)
+// somenteLeitura: login só pode ver. Gráfico e Histórico mostram os dados reais (sem apagar);
+// Entrada e Umidade mostram o dia de exemplo (EXEMPLO_DIA) com os campos travados, sem salvar.
 function MainApp({ onVoltar, somenteLeitura }) {
-  const [view, setView] = useState(somenteLeitura ? 'historico' : 'entrada')
+  const [view, setView] = useState('entrada')
   const [date, setDate] = useState(toDay())
   const [activeMat, setActiveMat] = useState('areia_fina')
-  const [dayData, setDayData] = useState(() => emptyDay())
+  const [dayData, setDayData] = useState(() => (somenteLeitura ? EXEMPLO_DIA : emptyDay()))
   const [hist, setHist] = useState([])
   const [histLoaded, setHistLoaded] = useState(false)
   const [histLoading, setHistLoading] = useState(false)
@@ -110,7 +114,9 @@ function MainApp({ onVoltar, somenteLeitura }) {
 
   // Sempre que a data selecionada muda, carrega o registro daquele dia (ou começa um em branco).
   // Enquanto carrega (ou se der erro) o salvamento fica bloqueado, pra não sobrescrever o dia com dados vazios.
+  // No modo só leitura não carrega nada: Entrada e Umidade ficam com o dia de exemplo.
   useEffect(() => {
+    if (somenteLeitura) return
     let cancel = false
     setDayStatus('loading')
     dbGet(date)
@@ -135,7 +141,7 @@ function MainApp({ onVoltar, somenteLeitura }) {
     return () => {
       cancel = true
     }
-  }, [date])
+  }, [date, somenteLeitura])
 
   // Ao entrar na aba Histórico, carrega da nuvem os dados completos de todos os dias
   useEffect(() => {
@@ -219,13 +225,15 @@ function MainApp({ onVoltar, somenteLeitura }) {
 
   const handleSievesChange = useCallback(
     (masses) => {
+      if (somenteLeitura) return
       setDayData((p) => ({ ...p, [activeMat]: { ...p[activeMat], masses } }))
       setSaved(false)
     },
-    [activeMat]
+    [activeMat, somenteLeitura]
   )
 
   const setField = (path, val) => {
+    if (somenteLeitura) return
     setSaved(false)
     if (path.includes('.')) {
       const [mid, ...rest] = path.split('.')
@@ -234,7 +242,7 @@ function MainApp({ onVoltar, somenteLeitura }) {
   }
 
   const save = async () => {
-    if (dayStatus !== 'ok' || saving) return
+    if (somenteLeitura || dayStatus !== 'ok' || saving) return
     setSaving(true)
     try {
       await dbSet(date, dayData)
@@ -249,11 +257,13 @@ function MainApp({ onVoltar, somenteLeitura }) {
   }
 
   const addUmidade = (entry) => {
+    if (somenteLeitura) return
     setSaved(false)
     setDayData((p) => ({ ...p, umidade: [...(Array.isArray(p.umidade) ? p.umidade : []), entry] }))
   }
 
   const removeUmidade = (id) => {
+    if (somenteLeitura) return
     setSaved(false)
     setDayData((p) => ({ ...p, umidade: (Array.isArray(p.umidade) ? p.umidade : []).filter((e) => e.id !== id) }))
   }
@@ -299,19 +309,21 @@ function MainApp({ onVoltar, somenteLeitura }) {
             </button>
             </div>
           </div>
-          {somenteLeitura ? (
+          {somenteLeitura && (
             <div className="vs-titulo">
               Granulometria <span className="leitura-tag">Só leitura</span>
             </div>
-          ) : (
+          )}
+          {/* No modo só leitura, Responsável/Filial só aparecem (travados) junto com o exemplo */}
+          {(!somenteLeitura || view === 'entrada' || view === 'umidade') && (
           <div className="hdr-fields">
             <div>
               <div className="hdr-lbl">Responsável</div>
-              <input className="hdr-inp" value={dayData.resp || ''} onChange={(e) => setField('resp', e.target.value)} placeholder="Nome" />
+              <input className="hdr-inp" value={dayData.resp || ''} onChange={(e) => setField('resp', e.target.value)} placeholder="Nome" disabled={somenteLeitura} />
             </div>
             <div>
               <div className="hdr-lbl">Filial</div>
-              <input className="hdr-inp" value={dayData.filial || ''} onChange={(e) => setField('filial', e.target.value)} placeholder="Filial" />
+              <input className="hdr-inp" value={dayData.filial || ''} onChange={(e) => setField('filial', e.target.value)} placeholder="Filial" disabled={somenteLeitura} />
             </div>
           </div>
           )}
@@ -324,13 +336,11 @@ function MainApp({ onVoltar, somenteLeitura }) {
             ['umidade', 'Umidade'],
             ['grafico', 'Gráfico'],
             ['historico', 'Histórico'],
-          ]
-            .filter(([id]) => !somenteLeitura || id === 'grafico' || id === 'historico')
-            .map(([id, lbl]) => (
-              <button key={id} className={`nav-btn${view === id ? ' on' : ''}`} onClick={() => setView(id)}>
-                {lbl}
-              </button>
-            ))}
+          ].map(([id, lbl]) => (
+            <button key={id} className={`nav-btn${view === id ? ' on' : ''}`} onClick={() => setView(id)}>
+              {lbl}
+            </button>
+          ))}
         </div>
 
         {histLoaded && !somenteLeitura && (
@@ -357,31 +367,39 @@ function MainApp({ onVoltar, somenteLeitura }) {
               })}
             </div>
             <div className="pad">
+              {somenteLeitura && (
+                <div className="exemplo-aviso">
+                  <strong>Exemplo</strong> Valores fictícios, só pra mostrar como os ensaios são lançados. Seu acesso é só de leitura: nada aqui pode ser
+                  editado ou salvo. Os dados reais estão nas abas Gráfico e Histórico.
+                </div>
+              )}
               {activeMat === 'pulverulento' ? (
-                <PulvTab dayData={dayData} setField={setField} />
+                <PulvTab dayData={dayData} setField={setField} readOnly={somenteLeitura} />
               ) : (
                 <div className="card">
                   <div style={{ fontWeight: 500, fontSize: 14, color: '#c1272d', marginBottom: 10 }}>{activeMaterial.label}</div>
                   <div className="fgrid">
                     <div>
                       <div className="flbl">NF</div>
-                      <input className="inp" value={activeMaterialData.nf || ''} onChange={(e) => setField(`${activeMat}.nf`, e.target.value)} placeholder="Nota fiscal" />
+                      <input className="inp" value={activeMaterialData.nf || ''} onChange={(e) => setField(`${activeMat}.nf`, e.target.value)} placeholder="Nota fiscal" disabled={somenteLeitura} />
                     </div>
                     <div>
                       <div className="flbl">Placa</div>
-                      <input className="inp" value={activeMaterialData.placa || ''} onChange={(e) => setField(`${activeMat}.placa`, e.target.value)} placeholder="ABC-1234" />
+                      <input className="inp" value={activeMaterialData.placa || ''} onChange={(e) => setField(`${activeMat}.placa`, e.target.value)} placeholder="ABC-1234" disabled={somenteLeitura} />
                     </div>
                   </div>
-                  <SieveTable key={sieveKey} mc={activeMaterial} initMasses={activeMaterialData.masses} onUpdate={handleSievesChange} />
+                  <SieveTable key={sieveKey} mc={activeMaterial} initMasses={activeMaterialData.masses} onUpdate={handleSievesChange} readOnly={somenteLeitura} />
                 </div>
               )}
-              <div className="save-bar">
-                {dayStatus === 'error' && <span style={{ fontSize: 12, color: '#e65100' }}>Erro ao carregar o dia — recarregue a página</span>}
-                {saved && <span className="saved">✓ Salvo — {fmtD(date)}</span>}
-                <button className="btn-save" onClick={save} disabled={dayStatus !== 'ok' || saving}>
-                  {dayStatus === 'loading' ? 'Carregando...' : saving ? 'Salvando...' : 'Salvar dados do dia'}
-                </button>
-              </div>
+              {!somenteLeitura && (
+                <div className="save-bar">
+                  {dayStatus === 'error' && <span style={{ fontSize: 12, color: '#e65100' }}>Erro ao carregar o dia — recarregue a página</span>}
+                  {saved && <span className="saved">✓ Salvo — {fmtD(date)}</span>}
+                  <button className="btn-save" onClick={save} disabled={dayStatus !== 'ok' || saving}>
+                    {dayStatus === 'loading' ? 'Carregando...' : saving ? 'Salvando...' : 'Salvar dados do dia'}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -395,6 +413,7 @@ function MainApp({ onVoltar, somenteLeitura }) {
             saved={saved}
             onSave={save}
             date={date}
+            readOnly={somenteLeitura}
           />
         )}
 
